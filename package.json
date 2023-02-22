@@ -1,0 +1,29 @@
+{
+  "name": "contracts-soildity",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "script": "hardhat run",
+    "lint:contract": "solhint",
+    "lint:ts": "prettier -w"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "hardhat": "^2.12.7",
+    "prettier": "^2.8.4",
+    "prettier-plugin-solidity": "^1.1.2",
+    "solhint": "^3.4.0",
+    "solhint-plugin-prettier": "^0.0.5"
+  },
+
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "{test,scripts}/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier -w"
+    ]
+  }
+}
