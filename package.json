@@ -4,8 +4,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "script": "hardhat run",
-    "lint:contract": "solhint",
-    "lint:ts": "prettier -w"
+    "lint": "prettier -w test scripts contracts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
@@ -22,7 +21,7 @@
     }
   },
   "lint-staged": {
-    "{test,scripts}/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+    "{test,scripts,contracts}/**/*.{js,jsx,ts,tsx,json,css,scss,md,sol}": [
       "prettier -w"
     ]
   }
