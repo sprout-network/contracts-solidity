@@ -5,7 +5,7 @@
     "test": "hardhat test",
     "script": "hardhat run",
     "lint": "prettier -w helpers test scripts contracts",
-    "testnode": "concurrently --kill-others-on-fail \"npx hardhat node\" \"sleep 5 && npx hardhat run --network hardhat scripts/deploy.ts\""
+    "testnode": "concurrently --kill-others-on-fail \"npx hardhat node\" \"sleep 5 && npx hardhat run --network localhost scripts/deploy.ts\""
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
