@@ -24,6 +24,12 @@ contract NFT is ERC721A {
         _mint(receiver, quantity);
     }
 
+    function burn(uint256 tokenId) external {
+        // the original burn function already checks if the sender is the owner or approved
+        _burn(tokenId, true);
+        activateTime[tokenId] = 0;
+    }
+
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseUri;
     }
