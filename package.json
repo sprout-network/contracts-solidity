@@ -4,7 +4,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "script": "hardhat run",
-    "lint": "prettier -w test scripts contracts"
+    "lint": "prettier -w helpers test scripts contracts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
