@@ -71,7 +71,7 @@ describe('NFT', function () {
       expect(await nft.activateTime(tokenId)).not.equal(0n)
     })
 
-    it("Should be revert if activate token twice", async function () {
+    it('Should be revert if activate token twice', async function () {
       const { nft } = await loadFixture(deployNFTFixture)
       await nft.mint(1)
       const tokenId = 0n
