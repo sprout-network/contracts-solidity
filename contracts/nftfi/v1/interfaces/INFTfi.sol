@@ -81,4 +81,8 @@ interface INFTfi is IERC721, INFTfiAdmin, NFTfiSigningUtils {
     function getPayoffAmount(uint256 _loanId) external view returns (uint256);
 
     function getWhetherNonceHasBeenUsedForUser(address _user, uint256 _nonce) external view returns (bool);
+
+    function loanIdToLoan(uint _loanId) external view returns (Loan memory);
+
+    function loanRepaidOrLiquidated(uint _loanId) external view returns (bool);
 }

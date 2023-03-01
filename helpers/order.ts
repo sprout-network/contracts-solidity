@@ -1,6 +1,6 @@
 import { BigNumberish, ethers } from 'ethers'
 
-interface BorrowerOrder {
+export interface BorrowerOrder {
   nftCollateralId: BigNumberish
   borrowerNonce: BigNumberish
   nftCollateralContract: string
@@ -8,7 +8,7 @@ interface BorrowerOrder {
   chainId: BigNumberish
 }
 
-interface LenderOrder {
+export interface LenderOrder {
   loanPrincipalAmount: BigNumberish
   maximumRepaymentAmount: BigNumberish
   nftCollateralId: BigNumberish
