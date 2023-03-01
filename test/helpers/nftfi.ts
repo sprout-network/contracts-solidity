@@ -5,7 +5,8 @@ import { BorrowerOrder, generateBorrowerHash, generateLenderHash, LenderOrder } 
 export async function addNftToWhitelist(nftfiAddr: string, nftfiOwner: string, nftAddress: string) {
   const owner = await ethers.getImpersonatedSigner(nftfiOwner)
   const nftfi = await ethers.getContractAt('INFTfi', nftfiAddr,owner)
-  await nftfi.whitelistNFTContract(nftAddress,true)
+  const tx=await nftfi.whitelistNFTContract(nftAddress,true)
+  await tx.wait()
 }
 
 export async function signOrder(signer:SignerWithAddress,type:string,order:BorrowerOrder|LenderOrder):Promise<string>{
