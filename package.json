@@ -4,7 +4,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "script": "hardhat run",
-    "lint": "prettier -w helpers test scripts contracts"
+    "lint": "prettier -w helpers test scripts contracts",
+    "testnode": "concurrently --kill-others-on-fail \"npx hardhat node\" \"sleep 5 && npx hardhat run --network localhost scripts/deploy.ts\""
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
@@ -18,6 +19,7 @@
     "@types/mocha": "^9.1.0",
     "@types/node": ">=12.0.0",
     "chai": "^4.2.0",
+    "concurrently": "^7.6.0",
     "erc721a": "^4.2.3",
     "ethers": "^5.7.2",
     "hardhat": "^2.11.0",
