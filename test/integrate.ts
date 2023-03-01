@@ -76,7 +76,7 @@ describe('integrate testing', function() {
         borrowerSig,
         lenderSig
       )).to.emit(nftfi, 'LoanStarted').withArgs(
-        anyValue, //loadId
+        anyValue, //loanId
         borrower.address,
         lender.address,
         lenderOrder.loanPrincipalAmount,
@@ -179,7 +179,7 @@ function generateTestOrder(
   return { lenderOrder, borrowerOrder }
 }
 
-export interface LoadEvent {
+export interface LoanEvent {
   loanId: BigNumberish
   borrower: string
   lender: string
@@ -194,7 +194,7 @@ export interface LoadEvent {
   interestIsProRated: boolean
 }
 
-function getLoanEvent(evt: Event): LoadEvent {
+function getLoanEvent(evt: Event): LoanEvent {
   const args = evt.args
   if (!args) throw new Error(`Loan parameter not found`)
   const {
