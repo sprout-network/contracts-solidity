@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
+import './IOwnable.sol';
 
-interface INFTfiAdmin {
+interface INFTfiAdmin is IOwnable {
     event AdminFeeUpdated(uint256 newAdminFee);
 
     function name() external view returns (string memory);
@@ -16,4 +17,8 @@ interface INFTfiAdmin {
     function updateMaximumNumberOfActiveLoans(uint256 _newMaximumNumberOfActiveLoans) external;
 
     function updateAdminFee(uint256 _newAdminFeeInBasisPoints) external;
+
+    function erc20CurrencyIsWhitelisted(address erc20) external view returns (bool);
+
+    function nftContractIsWhitelisted(address nft) external view returns (bool);
 }
