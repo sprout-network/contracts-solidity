@@ -89,8 +89,8 @@ describe('NFTfi', function() {
       const adminFeeInBasisPoints = 10n
       const nftCollateralContract = '0xB75F09b4340aEb85Cd5F2Dd87d31751EDC11ed39'
       const lender = owner.address
-      const nftCollateralId = BigNumber.from(1)
-      const lenderNonce = BigNumber.from(1)
+      const nftCollateralId = 1n
+      const lenderNonce = 1n
       const order = {
         loanPrincipalAmount,
         maximumRepaymentAmount,
