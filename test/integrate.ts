@@ -10,7 +10,7 @@ import { BigNumber, BigNumberish, Event } from 'ethers'
 import { BorrowerOrder, LenderOrder } from '../helpers/order'
 import { INFTfi } from '../typechain-types'
 
-describe('integrate testing', function() {
+describe('integrate testing', function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -45,68 +45,74 @@ describe('integrate testing', function() {
     return { nftfi, nft, weth, nftfiOwner, borrower, lender }
   }
 
-
-  describe('beginLoan', function() {
-    it('Txn Should be success if signatures are correct', async function() {
+  describe('beginLoan', function () {
+    it('Txn Should be success if signatures are correct', async function () {
       const { nftfi, borrower, lender, nft, weth } = await loadFixture(contractFixture)
       const chainId = await nftfi.getChainID()
       const nftCollateralContract = nft.address
       const nftCollateralId = 1n
       const loanERC20Denomination = weth.address
-      const {
-        borrowerOrder,
-        lenderOrder
-      } = generateTestOrder(
-        chainId, lender.address, borrower.address,
-        nft.address, nftCollateralId, loanERC20Denomination,
-        1000n)
+      const { borrowerOrder, lenderOrder } = generateTestOrder(
+        chainId,
+        lender.address,
+        borrower.address,
+        nft.address,
+        nftCollateralId,
+        loanERC20Denomination,
+        1000n
+      )
       const borrowerSig = await signOrder(borrower, 'BORROW', borrowerOrder)
       await approveNFT(nft.address, borrower, nftfi.address, nftCollateralId)
 
       const lenderSig = await signOrder(lender, 'LEND', lenderOrder)
       await approveWeth(weth.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
-      await expect(nftfi.beginLoan(
-        lenderOrder.loanPrincipalAmount,
-        lenderOrder.maximumRepaymentAmount,
-        nftCollateralId,
-        lenderOrder.loanDuration,
-        lenderOrder.loanInterestRateForDurationInBasisPoints,
-        lenderOrder.adminFeeInBasisPoints,
-        [borrowerOrder.borrowerNonce, lenderOrder.lenderNonce],
-        nftCollateralContract,
-        loanERC20Denomination,
-        lender.address,
-        borrowerSig,
-        lenderSig
-      )).to.emit(nftfi, 'LoanStarted').withArgs(
-        anyValue, //loanId
-        borrower.address,
-        lender.address,
-        lenderOrder.loanPrincipalAmount,
-        lenderOrder.maximumRepaymentAmount,
-        nftCollateralId,
-        anyValue, //loanStartTime
-        lenderOrder.loanDuration,
-        lenderOrder.loanInterestRateForDurationInBasisPoints,
-        nftCollateralContract,
-        loanERC20Denomination,
-        lenderOrder.interestIsProRated
+      await expect(
+        nftfi.beginLoan(
+          lenderOrder.loanPrincipalAmount,
+          lenderOrder.maximumRepaymentAmount,
+          nftCollateralId,
+          lenderOrder.loanDuration,
+          lenderOrder.loanInterestRateForDurationInBasisPoints,
+          lenderOrder.adminFeeInBasisPoints,
+          [borrowerOrder.borrowerNonce, lenderOrder.lenderNonce],
+          nftCollateralContract,
+          loanERC20Denomination,
+          lender.address,
+          borrowerSig,
+          lenderSig
+        )
       )
+        .to.emit(nftfi, 'LoanStarted')
+        .withArgs(
+          anyValue, //loanId
+          borrower.address,
+          lender.address,
+          lenderOrder.loanPrincipalAmount,
+          lenderOrder.maximumRepaymentAmount,
+          nftCollateralId,
+          anyValue, //loanStartTime
+          lenderOrder.loanDuration,
+          lenderOrder.loanInterestRateForDurationInBasisPoints,
+          nftCollateralContract,
+          loanERC20Denomination,
+          lenderOrder.interestIsProRated
+        )
     })
   })
-  describe('payBackLoan', function() {
+  describe('payBackLoan', function () {
     const loanFixture = async () => {
       const { nftfi, borrower, nftfiOwner, lender, nft, weth } = await loadFixture(contractFixture)
       const chainId = await nftfi.getChainID()
       const nftCollateralContract = nft.address
       const nftCollateralId = 1n
       const loanERC20Denomination = weth.address
-      const {
-        borrowerOrder,
-        lenderOrder
-      } = generateTestOrder(
-        chainId, lender.address, borrower.address,
-        nft.address, nftCollateralId, loanERC20Denomination,
+      const { borrowerOrder, lenderOrder } = generateTestOrder(
+        chainId,
+        lender.address,
+        borrower.address,
+        nft.address,
+        nftCollateralId,
+        loanERC20Denomination,
         1000n
       )
       const borrowerSig = await signOrder(borrower, 'BORROW', borrowerOrder)
@@ -134,24 +140,23 @@ describe('integrate testing', function() {
       const loanEvent = getLoanEvent(evts[evts.length - 1])
       return { nftfi, nft, weth, nftfiOwner, borrower, lender, loanEvent }
     }
-    it('Txn Should be success', async function() {
+    it('Txn Should be success', async function () {
       const { nftfi, borrower, lender, nft, weth, loanEvent } = await loadFixture(loanFixture)
       await approveWeth(weth.address, borrower, nftfi.address, loanEvent.maximumRepaymentAmount)
-      await expect(nftfi.payBackLoan(loanEvent.loanId))
-        .to.emit(nftfi, 'LoanRepaid').withArgs(
-          loanEvent.loanId,
-          loanEvent.borrower,
-          loanEvent.lender,
-          loanEvent.loanPrincipalAmount,
-          loanEvent.nftCollateralId,
-          anyValue, //amountPaidToLender
-          anyValue, //adminFee
-          loanEvent.nftCollateralContract,
-          loanEvent.loanERC20Denomination
-        )
+      await expect(nftfi.payBackLoan(loanEvent.loanId)).to.emit(nftfi, 'LoanRepaid').withArgs(
+        loanEvent.loanId,
+        loanEvent.borrower,
+        loanEvent.lender,
+        loanEvent.loanPrincipalAmount,
+        loanEvent.nftCollateralId,
+        anyValue, //amountPaidToLender
+        anyValue, //adminFee
+        loanEvent.nftCollateralContract,
+        loanEvent.loanERC20Denomination
+      )
     })
 
-    describe('liquidateLoan', function() {
+    describe('liquidateLoan', function () {
       const expireLoanFixture = async () => {
         const { nftfi, borrower, nftfiOwner, lender, nft, weth } = await loadFixture(contractFixture)
         const chainId = await nftfi.getChainID()
@@ -159,12 +164,13 @@ describe('integrate testing', function() {
         const nftCollateralId = 1n
         const loanERC20Denomination = weth.address
         const loadInterval = 3
-        const {
-          borrowerOrder,
-          lenderOrder
-        } = generateTestOrder(
-          chainId, lender.address, borrower.address,
-          nft.address, nftCollateralId, loanERC20Denomination,
+        const { borrowerOrder, lenderOrder } = generateTestOrder(
+          chainId,
+          lender.address,
+          borrower.address,
+          nft.address,
+          nftCollateralId,
+          loanERC20Denomination,
           loadInterval
         )
         const borrowerSig = await signOrder(borrower, 'BORROW', borrowerOrder)
@@ -190,10 +196,10 @@ describe('integrate testing', function() {
         const evts = receipt.events
         if (!evts) throw new Error(`event not found`)
         const loanEvent = getLoanEvent(evts[evts.length - 1])
-        await new Promise(f => setTimeout(f, (loadInterval + 1) * 1000))
+        await new Promise((f) => setTimeout(f, (loadInterval + 1) * 1000))
         return { nftfi, nft, weth, nftfiOwner, borrower, lender, loanEvent }
       }
-      it('Txn Should be success', async function() {
+      it('Txn Should be success', async function () {
         const { nftfi, borrower, lender, loanEvent } = await loadFixture(expireLoanFixture)
         const nftfiLender = nftfi.connect(lender)
         await expect(nftfiLender.liquidateOverdueLoan(loanEvent.loanId))
@@ -210,16 +216,18 @@ describe('integrate testing', function() {
           )
       })
     })
-
   })
 })
 
-
 function generateTestOrder(
-  chainId: BigNumber, lender: string, borrower: string,
-  nft: string, nftId: BigNumberish, erc20: string,
+  chainId: BigNumber,
+  lender: string,
+  borrower: string,
+  nft: string,
+  nftId: BigNumberish,
+  erc20: string,
   loanDuration: BigNumberish
-): { borrowerOrder: BorrowerOrder, lenderOrder: LenderOrder } {
+): { borrowerOrder: BorrowerOrder; lenderOrder: LenderOrder } {
   const nftCollateralContract = nft
   const nftCollateralId = nftId
   const borrowerNonce = 1n
@@ -243,7 +251,7 @@ function generateTestOrder(
     loanERC20Denomination,
     lender,
     interestIsProRated,
-    chainId
+    chainId,
   }
   return { lenderOrder, borrowerOrder }
 }
@@ -278,7 +286,7 @@ function getLoanEvent(evt: Event): LoanEvent {
     loanInterestRateForDurationInBasisPoints,
     nftCollateralContract,
     loanERC20Denomination,
-    interestIsProRated
+    interestIsProRated,
   } = args
   return {
     loanId,
@@ -292,6 +300,6 @@ function getLoanEvent(evt: Event): LoanEvent {
     loanInterestRateForDurationInBasisPoints,
     nftCollateralContract,
     loanERC20Denomination,
-    interestIsProRated
+    interestIsProRated,
   }
 }

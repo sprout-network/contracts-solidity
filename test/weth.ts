@@ -3,7 +3,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { ethToWeth } from './helpers/weth'
 
-describe('WETH', function() {
+describe('WETH', function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -17,8 +17,8 @@ describe('WETH', function() {
     return { weth, user1, otherAccount }
   }
 
-  describe('Connect', function() {
-    it('Should set the right name and symbol', async function() {
+  describe('Connect', function () {
+    it('Should set the right name and symbol', async function () {
       const { weth } = await loadFixture(connectWETHFixture)
 
       expect(await weth.name()).to.equal('Wrapped Ether')
@@ -26,14 +26,14 @@ describe('WETH', function() {
     })
   })
 
-  describe('Deposit', function() {
-    it('Should set the right name and symbol', async function() {
-      const { weth,user1 } = await loadFixture(connectWETHFixture)
-      let balance=await weth.balanceOf(user1.address)
+  describe('Deposit', function () {
+    it('Should set the right name and symbol', async function () {
+      const { weth, user1 } = await loadFixture(connectWETHFixture)
+      let balance = await weth.balanceOf(user1.address)
       expect(balance.eq(0n)).to.true
-      const amount=ethers.utils.parseEther("1.0")
-      await ethToWeth(weth.address,user1,amount)
-      balance=await weth.balanceOf(user1.address)
+      const amount = ethers.utils.parseEther('1.0')
+      await ethToWeth(weth.address, user1, amount)
+      balance = await weth.balanceOf(user1.address)
       expect(balance.eq(amount)).to.true
     })
   })
