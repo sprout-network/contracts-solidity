@@ -46,7 +46,7 @@ describe('integrate testing', function () {
   }
 
   describe('beginLoan', function () {
-    it('Txn Should be success if signatures are correct', async function () {
+    it('Txn Should be successful if signatures are correct', async function () {
       const { nftfi, borrower, lender, nft, weth } = await loadFixture(contractFixture)
       const chainId = await nftfi.getChainID()
       const nftCollateralContract = nft.address
@@ -140,7 +140,7 @@ describe('integrate testing', function () {
       const loanEvent = getLoanEvent(evts[evts.length - 1])
       return { nftfi, nft, weth, nftfiOwner, borrower, lender, loanEvent }
     }
-    it('Txn Should be success', async function () {
+    it('Txn Should be successful', async function () {
       const { nftfi, borrower, lender, nft, weth, loanEvent } = await loadFixture(loanFixture)
       await approveWeth(weth.address, borrower, nftfi.address, loanEvent.maximumRepaymentAmount)
       await expect(nftfi.payBackLoan(loanEvent.loanId)).to.emit(nftfi, 'LoanRepaid').withArgs(
