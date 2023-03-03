@@ -6,7 +6,8 @@ import './TreasuryAdmin.sol';
 
 contract Treasury is TreasuryAdmin {
     struct PoolInfo {
-        address nftOwner;
+        address nft;
+        uint256 nftId;
         address coin;
         uint256 balances;
     }
@@ -25,17 +26,15 @@ contract Treasury is TreasuryAdmin {
 
     uint256 public totalNumPool = 0;
 
-    constructor(address[] memory _coins, address[] memory _nfts) TreasuryAdmin(_coins, _nfts) {}
+    constructor(address[] memory _coins) TreasuryAdmin(_coins) {}
 
     function createPool(
         address _nftAddress,
         uint256 _nftId,
         address _coin
-    ) external validCoin(_coin) validNFT(_nftAddress) returns (uint256 _poolId) {
-        IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId);
+    ) external onlyOwner validCoin(_coin) returns (uint256 _poolId) {
         _poolId = totalNumPool;
-
-        PoolInfo memory _info = PoolInfo({nftOwner: msg.sender, coin: _coin, balances: 0});
+        PoolInfo memory _info = PoolInfo({nft: _nftAddress, nftId: _nftId, coin: _coin, balances: 0});
         getPoolId[_nftAddress][_nftId] = _poolId;
         getPoolInfo[_poolId] = _info;
         isActive[_poolId] = true;
@@ -58,12 +57,12 @@ contract Treasury is TreasuryAdmin {
     function withdraw(
         uint256 _poolId,
         address _coin,
-        uint256 amount
-    ) external onlyPoolOwner(_poolId) verifyCoin(_poolId, _coin) returns (bool) {
-        require(getPoolInfo[_poolId].balances >= amount, 'insufficient coin amount');
-        require(IERC20(_coin).transfer(msg.sender, amount), 'transfer coin fail');
-        getPoolInfo[_poolId].balances -= amount;
-        emit Withdraw(_poolId, msg.sender, _coin, amount);
+        uint256 _amount
+    ) external onlyHolder(_poolId) verifyCoin(_poolId, _coin) returns (bool) {
+        require(getPoolInfo[_poolId].balances >= _amount, 'insufficient coin amount');
+        require(IERC20(_coin).transfer(msg.sender, _amount), 'transfer coin fail');
+        getPoolInfo[_poolId].balances -= _amount;
+        emit Withdraw(_poolId, msg.sender, _coin, _amount);
         return true;
     }
 
@@ -72,9 +71,10 @@ contract Treasury is TreasuryAdmin {
         _;
     }
 
-    modifier onlyPoolOwner(uint256 _poolId) {
+    modifier onlyHolder(uint256 _poolId) {
         require(isActive[_poolId], 'pool is not active');
-        require(msg.sender == getPoolInfo[_poolId].nftOwner, 'only used by pool owner');
+        address owner = IERC721(getPoolInfo[_poolId].nft).ownerOf(getPoolInfo[_poolId].nftId);
+        require(msg.sender == owner, 'only used by nft holder');
         _;
     }
 

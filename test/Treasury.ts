@@ -22,7 +22,7 @@ describe('Treasury', function () {
     const [owner, otherAccount] = await ethers.getSigners()
 
     const Treasury = await ethers.getContractFactory('Treasury')
-    const treasury = await Treasury.deploy([coin.address], [nft.address])
+    const treasury = await Treasury.deploy([coin.address])
     await treasury.deployed()
 
     await (await nft.mint()).wait()
@@ -36,7 +36,6 @@ describe('Treasury', function () {
 
   async function poolFixture() {
     const { treasury, nft, nftId, coin, owner, otherAccount } = await loadFixture(deployTreasuryFixture)
-    await (await nft.approve(treasury.address, nftId)).wait()
     await (await treasury.createPool(nft.address, nftId, coin.address)).wait()
     const poolId = await treasury.getPoolId(nft.address, nftId)
     const poolInfo = await treasury.getPoolInfo(poolId)
@@ -58,29 +57,32 @@ describe('Treasury', function () {
 
       expect(await treasury.coinWhitelist(coin.address)).to.equal(true)
       expect(await treasury.coinWhitelist(nft.address)).to.equal(false)
-      expect(await treasury.nftWhitelist(coin.address)).to.equal(false)
-      expect(await treasury.nftWhitelist(nft.address)).to.equal(true)
     })
   })
 
   describe('CreatePool method', function () {
-    it('Should be create pool successful', async function () {
+    it('Should be create pool successful if caller is treasury owner', async function () {
       const { treasury, nft, nftId, coin, owner } = await loadFixture(deployTreasuryFixture)
-      expect(await nft.ownerOf(nftId)).to.equal(owner.address)
-      await (await nft.approve(treasury.address, nftId)).wait()
       await expect(treasury.createPool(nft.address, nftId, coin.address))
         .to.emit(treasury, 'PoolCreated')
         .withArgs(anyValue, nft.address, nftId)
       const poolId = await treasury.getPoolId(nft.address, nftId)
       const poolInfo = await treasury.getPoolInfo(poolId)
       expect(poolInfo.coin).to.equal(coin.address)
-      expect(poolInfo.nftOwner).to.equal(owner.address)
+      expect(poolInfo.nft).to.equal(nft.address)
+      expect(poolInfo.nftId).to.equal(nftId)
       expect(poolInfo.balances).to.equal(0n)
-      expect(await nft.ownerOf(nftId)).to.equal(treasury.address)
+    })
+
+    it('Should be create pool successful if caller is not treasury owner', async function () {
+      let { treasury, nft, nftId, coin, owner,otherAccount } = await loadFixture(deployTreasuryFixture)
+      treasury=treasury.connect(otherAccount)
+      await expect(treasury.createPool(nft.address, nftId, coin.address))
+        .to.revertedWith('Ownable: caller is not the owner')
     })
   })
   describe('Deposit method', function () {
-    it('txn Should be successful if caller is nft owner ', async function () {
+    it('txn Should be successful if caller is the nft holder ', async function () {
       const { treasury, coin, poolId, owner, poolInfo } = await loadFixture(poolFixture)
       const depositAmount = 10000n
       await (await coin.approve(treasury.address, depositAmount)).wait()
@@ -88,12 +90,11 @@ describe('Treasury', function () {
         .to.emit(treasury, 'Deposit')
         .withArgs(poolId, owner.address, coin.address, depositAmount)
       const newPoolInfo = await treasury.getPoolInfo(poolId)
-      expect(newPoolInfo.nftOwner).to.equal(owner.address)
       expect(newPoolInfo.balances.eq(poolInfo.balances.add(depositAmount))).to.equal(true)
       expect(newPoolInfo.coin).to.equal(coin.address)
     })
 
-    it('txn Should be successful if caller is the other user ', async function () {
+    it('txn Should be successful if caller is the another user ', async function () {
       let { treasury, coin, poolId, owner, poolInfo, otherAccount } = await loadFixture(poolFixture)
       treasury = treasury.connect(otherAccount)
       coin = coin.connect(otherAccount)
@@ -103,28 +104,26 @@ describe('Treasury', function () {
         .to.emit(treasury, 'Deposit')
         .withArgs(poolId, otherAccount.address, coin.address, depositAmount)
       const newPoolInfo = await treasury.getPoolInfo(poolId)
-      expect(newPoolInfo.nftOwner).to.equal(owner.address)
       expect(newPoolInfo.balances.eq(poolInfo.balances.add(depositAmount))).to.equal(true)
       expect(newPoolInfo.coin).to.equal(coin.address)
     })
   })
   describe('Withdraw method', function () {
-    it('txn Should be successful if caller is nft owner', async function () {
+    it('txn Should be successful if caller is the nft holder', async function () {
       const { treasury, coin, poolId, owner, poolInfo } = await loadFixture(poolDepositedFixture)
       const withdrawAmount = poolInfo.balances
       await expect(treasury.withdraw(poolId, poolInfo.coin, withdrawAmount))
         .to.emit(treasury, 'Withdraw')
         .withArgs(poolId, owner.address, coin.address, withdrawAmount)
       const newPoolInfo = await treasury.getPoolInfo(poolId)
-      expect(newPoolInfo.nftOwner).to.equal(owner.address)
       expect(newPoolInfo.balances.eq(poolInfo.balances.sub(withdrawAmount))).to.equal(true)
       expect(newPoolInfo.coin).to.equal(coin.address)
     })
-    it('txn Should be fail if caller is not nft owner', async function () {
+    it('txn Should be fail if caller is not the nft holder', async function () {
       const { treasury, poolId, poolInfo, otherAccount } = await loadFixture(poolDepositedFixture)
       const withdrawAmount = poolInfo.balances
       await expect(treasury.connect(otherAccount).withdraw(poolId, poolInfo.coin, withdrawAmount)).to.revertedWith(
-        'only used by pool owner'
+        'only used by nft holder'
       )
     })
   })
