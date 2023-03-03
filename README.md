@@ -9,8 +9,7 @@ yarn script <script-file-path>
 
 ### Lint
 ```shell
-yarn lint:contract <contract-file-path>
-yarn lint:ts <ts-dir>
+yarn lint
 ```
 
 

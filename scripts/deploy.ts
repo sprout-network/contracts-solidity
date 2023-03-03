@@ -11,7 +11,7 @@ async function main() {
   console.log(`Latest block number: ${latestBlock.number}`)
   console.log(`Latest block timestamp: ${latestBlock.timestamp}`)
   console.log(`Current timestamp: ${currentTimestampInSeconds}`)
-  
+
   const Lock = await ethers.getContractFactory('Lock')
   const lock = await Lock.deploy(unlockTime, { value: lockedAmount })
 
