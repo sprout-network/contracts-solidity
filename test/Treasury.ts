@@ -75,10 +75,11 @@ describe('Treasury', function () {
     })
 
     it('Should be create pool successful if caller is not treasury owner', async function () {
-      let { treasury, nft, nftId, coin, owner,otherAccount } = await loadFixture(deployTreasuryFixture)
-      treasury=treasury.connect(otherAccount)
-      await expect(treasury.createPool(nft.address, nftId, coin.address))
-        .to.revertedWith('Ownable: caller is not the owner')
+      let { treasury, nft, nftId, coin, owner, otherAccount } = await loadFixture(deployTreasuryFixture)
+      treasury = treasury.connect(otherAccount)
+      await expect(treasury.createPool(nft.address, nftId, coin.address)).to.revertedWith(
+        'Ownable: caller is not the owner'
+      )
     })
   })
   describe('Deposit method', function () {
