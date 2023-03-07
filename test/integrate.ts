@@ -18,8 +18,12 @@ describe('integrate testing', function () {
     //NFTfi contract address (https://github.com/NFTfi-Genesis/nftfi.eth/tree/main/V1)
     const [borrower, lender] = await ethers.getSigners()
 
-    const addr = '0x88341d1a8f672d2780c8dc725902aae72f143b0c'
-    const nftfi = await ethers.getContractAt('INFTfi', addr)
+    // const addr = '0x88341d1a8f672d2780c8dc725902aae72f143b0c'
+    // const nftfi = await ethers.getContractAt('INFTfi', addr)
+    // await nftfi.deployed()
+
+    const NFTfi = await ethers.getContractFactory('NFTfi')
+    const nftfi=await NFTfi.deploy()
     await nftfi.deployed()
 
     const name = 'Creator'
@@ -35,10 +39,9 @@ describe('integrate testing', function () {
     const weth = await ethers.getContractAt('WETH9', wethAddress)
     await weth.deployed()
 
-    const nftfiOwnerAddr = '0xDcA17eeDc1aa3dbB14361678566b2dA5A1Bb4C31'
+    const nftfiOwnerAddr = await nftfi.owner()
     const nftfiOwner = await ethers.getImpersonatedSigner(nftfiOwnerAddr)
-    await transferETH(borrower, nftfiOwnerAddr, ethers.utils.parseEther('10.0'))
-    await addNftToWhitelist(addr, nftfiOwnerAddr, nft.address)
+    await addNftToWhitelist(nftfi.address, await nftfi.owner(), nft.address)
     await ethToWeth(wethAddress, borrower, ethers.utils.parseEther('10.0'))
     await ethToWeth(wethAddress, lender, ethers.utils.parseEther('10.0'))
 
