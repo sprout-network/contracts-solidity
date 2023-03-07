@@ -12,6 +12,9 @@ const config: HardhatUserConfig = {
           version: '0.8.17'
         },
         {
+          version: '0.8.14'
+        },
+        {
           version: '0.4.18'
         },
         {
@@ -23,8 +26,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       allowUnlimitedContractSize: false,
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-        blockNumber: 16538651
+        url: `https://bsc-dataseed1.binance.org/`,
+        // blockNumber: 16538651
       }
     },
     mainnet: {

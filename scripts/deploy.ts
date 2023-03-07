@@ -31,8 +31,7 @@ async function main() {
 
   const owner = await nftfi.owner()
   console.log(`\x1b[31mNFTfi owner: ${owner}\x1b[0m`)
-  await nftfi.whitelistNFTContract(nft.address, true)
-    .then((tx) => tx.wait())
+  await nftfi.whitelistNFTContract(nft.address, true).then((tx) => tx.wait())
   console.log(`\x1b[31mWhitelisted NFT: ${nft.address}\x1b[0m`)
 
   if (process.env.TESTING_METAMASK_ADDRESS) {

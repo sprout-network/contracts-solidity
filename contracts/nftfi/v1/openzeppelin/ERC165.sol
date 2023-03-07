@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "./IERC165.sol";
+import './IERC165.sol';
 
 /**
  * @title ERC165
@@ -23,7 +23,7 @@ contract ERC165 is IERC165 {
      * @dev A contract implementing SupportsInterfaceWithLookup
      * implement ERC165 itself
      */
-    constructor () internal {
+    constructor() internal {
         _registerInterface(_INTERFACE_ID_ERC165);
     }
 

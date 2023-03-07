@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "./PauserRole.sol";
+import './PauserRole.sol';
 
 /**
  * @title Pausable
@@ -12,7 +12,7 @@ contract Pausable is PauserRole {
 
     bool private _paused;
 
-    constructor () internal {
+    constructor() internal {
         _paused = false;
     }
 

@@ -9,7 +9,7 @@ describe('NFTfi', function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployNFTfiFixture() {
     const NFTfi = await ethers.getContractFactory('NFTfi')
-    const nftfi=await NFTfi.deploy()
+    const nftfi = await NFTfi.deploy()
     await nftfi.deployed()
 
     // Contracts are deployed using the first signer/account by default

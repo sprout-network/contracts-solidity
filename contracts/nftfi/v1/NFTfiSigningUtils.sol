@@ -12,7 +12,6 @@ import './openzeppelin/ECDSA.sol';
 // @notice Cite: I also relied on this article somewhat:
 //         https://forum.openzeppelin.com/t/sign-it-like-you-mean-it-creating-and-verifying-ethereum-signatures/697
 contract NFTfiSigningUtils {
-
     /* *********** */
     /* CONSTRUCTOR */
     /* *********** */
@@ -71,19 +70,15 @@ contract NFTfiSigningUtils {
         address _nftCollateralContract,
         address _borrower,
         bytes memory _borrowerSignature
-    ) public view returns(bool) {
-        if(_borrower == address(0)){
+    ) public view returns (bool) {
+        if (_borrower == address(0)) {
             return false;
         } else {
             uint256 chainId;
             chainId = getChainID();
-            bytes32 message = keccak256(abi.encodePacked(
-                _nftCollateralId,
-                _borrowerNonce,
-                _nftCollateralContract,
-                _borrower,
-                chainId
-            ));
+            bytes32 message = keccak256(
+                abi.encodePacked(_nftCollateralId, _borrowerNonce, _nftCollateralContract, _borrower, chainId)
+            );
 
             bytes32 messageWithEthSignPrefix = message.toEthSignedMessageHash();
 
@@ -164,26 +159,28 @@ contract NFTfiSigningUtils {
         address _lender,
         bool _interestIsProRated,
         bytes memory _lenderSignature
-    ) public view returns(bool) {
-        if(_lender == address(0)){
+    ) public view returns (bool) {
+        if (_lender == address(0)) {
             return false;
         } else {
             uint256 chainId;
             chainId = getChainID();
-            bytes32 message = keccak256(abi.encodePacked(
-                _loanPrincipalAmount,
-                _maximumRepaymentAmount,
-                _nftCollateralId,
-                _loanDuration,
-                _loanInterestRateForDurationInBasisPoints,
-                _adminFeeInBasisPoints,
-                _lenderNonce,
-                _nftCollateralContract,
-                _loanERC20Denomination,
-                _lender,
-                _interestIsProRated,
-                chainId
-            ));
+            bytes32 message = keccak256(
+                abi.encodePacked(
+                    _loanPrincipalAmount,
+                    _maximumRepaymentAmount,
+                    _nftCollateralId,
+                    _loanDuration,
+                    _loanInterestRateForDurationInBasisPoints,
+                    _adminFeeInBasisPoints,
+                    _lenderNonce,
+                    _nftCollateralContract,
+                    _loanERC20Denomination,
+                    _lender,
+                    _interestIsProRated,
+                    chainId
+                )
+            );
 
             bytes32 messageWithEthSignPrefix = message.toEthSignedMessageHash();
 
