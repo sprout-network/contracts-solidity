@@ -27,9 +27,9 @@ npx hardhat run scripts/deploy.ts
 
 ### Running local testnode with deployed contracts
 ```shell
-npx testnode
+yarn testnode
 ```
-You should see the addresses in the following example output:
+You should see the addresses in the following example output in **color red**:
 ```shell
 ...
 [0] eth_chainId
@@ -39,3 +39,7 @@ You should see the addresses in the following example output:
 [1] sleep 5 && npx hardhat run --network localhost scripts/deploy.ts exited with code 0
 ...
 ```
+
+### Getting testing ETH
+1. Set the env variable `TESTING_METAMASK_ADDRESS` value to your desired testing address
+2. Run `yarn testnode`, then 30 ETH will be sent to your testing address
