@@ -27,6 +27,8 @@ contract Treasury is TreasuryAdmin {
 
     mapping(uint256 => bool) public isActive;
 
+    mapping(uint256 => bool) public isNonceUsed;
+
     uint256 public totalNumPool = 0;
     address private _signer;
 
@@ -80,19 +82,22 @@ contract Treasury is TreasuryAdmin {
         uint256 _nonce,
         bytes memory _depositProof
     ) external returns(bool){
-        require(_isValidWithdrawSignature(_coin, _amount, _nonce, _depositProof), 'invalid deposit proof');
+        require(_isValidWithdrawSignature(msg.sender, _coin, _amount, _nonce, _depositProof), 'invalid deposit proof');
+        require(!isNonceUsed[_nonce], 'nonce has been used');
         require(IERC20(_coin).transfer(msg.sender, _amount), 'transfer coin fail');
+        isNonceUsed[_nonce] = true;
         emit WhitelistWithdraw(msg.sender, _coin, _amount);
         return true;
     }
 
     function _isValidWithdrawSignature(
+        address _receiver,
         address _coin,
         uint256 _amount,
         uint256 _nonce,
         bytes memory _depositProof
     ) private view returns(bool){
-        bytes32 message = keccak256(abi.encodePacked(msg.sender, _coin, _amount, _nonce));
+        bytes32 message = keccak256(abi.encodePacked(_receiver, _coin, _amount, _nonce));
         bytes32 messageWithEthSignPrefix = message.toEthSignedMessageHash();
         return (messageWithEthSignPrefix.recover(_depositProof) == _signer);
     }

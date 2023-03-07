@@ -163,6 +163,12 @@ describe('Treasury', function () {
       const depositProofSelfSigned = otherAccount.signMessage(generateWithdrawHash(deposit.owner, deposit.coin, deposit.amount,deposit.nonce));
       await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount).add(1n), nonce, depositProofSelfSigned)).to.revertedWith('invalid deposit proof')
     })
+
+    it('txn Should be fail if nonce has been used ', async function () {
+      const {treasury, coin, otherAccount, depositAmount, nonce, depositProof} = await whitelistWithdrawSetup();
+      await treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof); 
+      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof)).to.revertedWith('nonce has been used')
+    })
   })
 
 })
