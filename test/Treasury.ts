@@ -52,15 +52,17 @@ describe('Treasury', function () {
   }
 
   async function whitelistWithdrawSetup() {
-    const { treasury, nft, nftId, coin, owner, otherAccount } = await loadFixture(deployTreasuryFixture);
-    await (await coin.mintTo(treasury.address, 1000000000000000000n )).wait()
-    const depositAmount = 1000000000000n ;
-    const nonce = new Date().getTime(); 
-    const deposit = {owner:otherAccount.address, amount:depositAmount ,coin:coin.address, nonce:nonce };
-    const depositProof = await owner.signMessage(generateWithdrawHash(deposit.owner, deposit.coin, deposit.amount,deposit.nonce));
-    return {treasury, coin, owner, otherAccount, depositAmount, nonce, deposit, depositProof};
+    const { treasury, nft, nftId, coin, owner, otherAccount } = await loadFixture(deployTreasuryFixture)
+    await (await coin.mintTo(treasury.address, 1000000000000000000n)).wait()
+    const depositAmount = 1000000000000n
+    const nonce = new Date().getTime()
+    const deposit = { owner: otherAccount.address, amount: depositAmount, coin: coin.address, nonce: nonce }
+    const depositProof = await owner.signMessage(
+      generateWithdrawHash(deposit.owner, deposit.coin, deposit.amount, deposit.nonce)
+    )
+    return { treasury, coin, owner, otherAccount, depositAmount, nonce, deposit, depositProof }
   }
-  
+
   describe('Deployment', function () {
     it('Should set the right name and symbol', async function () {
       const { nft, treasury, coin } = await loadFixture(deployTreasuryFixture)
@@ -85,10 +87,11 @@ describe('Treasury', function () {
     })
 
     it('Should be create pool successful if caller is not treasury owner', async function () {
-      let { treasury, nft, nftId, coin, owner,otherAccount } = await loadFixture(deployTreasuryFixture)
-      treasury=treasury.connect(otherAccount)
-      await expect(treasury.createPool(nft.address, nftId, coin.address))
-        .to.revertedWith('Ownable: caller is not the owner')
+      let { treasury, nft, nftId, coin, owner, otherAccount } = await loadFixture(deployTreasuryFixture)
+      treasury = treasury.connect(otherAccount)
+      await expect(treasury.createPool(nft.address, nftId, coin.address)).to.revertedWith(
+        'Ownable: caller is not the owner'
+      )
     })
   })
   describe('Deposit method', function () {
@@ -138,62 +141,62 @@ describe('Treasury', function () {
     })
   })
 
-  describe('Whitelist Withdraw', function() {
-  
-    it('txn Should be successful if by valid address',async function() {
-      const {treasury, coin, otherAccount, depositAmount, nonce, depositProof} = await whitelistWithdrawSetup();
+  describe('Whitelist Withdraw', function () {
+    it('txn Should be successful if by valid address', async function () {
+      const { treasury, coin, otherAccount, depositAmount, nonce, depositProof } = await whitelistWithdrawSetup()
       const balanceBeforeWithdraw = await coin.balanceOf(otherAccount.address)
-      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof)).to.emit(treasury, 'WhitelistWithdraw').withArgs(otherAccount.address, coin.address, depositAmount);
+      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof))
+        .to.emit(treasury, 'WhitelistWithdraw')
+        .withArgs(otherAccount.address, coin.address, depositAmount)
       expect(await coin.balanceOf(otherAccount.address)).equal(balanceBeforeWithdraw.add(depositAmount))
     })
 
-    it('txn Should be fail if withdraw with wrong amount', async function(){
-      const {treasury, coin, otherAccount, depositAmount, nonce, depositProof} = await whitelistWithdrawSetup();
-      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount).add(1n), nonce, depositProof)).to.revertedWith('invalid deposit proof')
+    it('txn Should be fail if withdraw with wrong amount', async function () {
+      const { treasury, coin, otherAccount, depositAmount, nonce, depositProof } = await whitelistWithdrawSetup()
+      await expect(
+        treasury
+          .connect(otherAccount)
+          .whitelistWithdraw(coin.address, BigNumber.from(depositAmount).add(1n), nonce, depositProof)
+      ).to.revertedWith('invalid deposit proof')
     })
-  
-    it('txn Should be fail if withdraw by invalid address', async function(){
-      const {treasury, coin, depositAmount, nonce, depositProof} = await whitelistWithdrawSetup();
-      const [thirdUser] = await ethers.getSigners();
-      await expect(treasury.connect(thirdUser).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof)).to.revertedWith('invalid deposit proof')
+
+    it('txn Should be fail if withdraw by invalid address', async function () {
+      const { treasury, coin, depositAmount, nonce, depositProof } = await whitelistWithdrawSetup()
+      const [thirdUser] = await ethers.getSigners()
+      await expect(
+        treasury.connect(thirdUser).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof)
+      ).to.revertedWith('invalid deposit proof')
     })
 
     it('txn Should be fail if signer is other address ', async function () {
-      const {treasury, coin, otherAccount, depositAmount, nonce, deposit} = await whitelistWithdrawSetup();
-      const depositProofSelfSigned = otherAccount.signMessage(generateWithdrawHash(deposit.owner, deposit.coin, deposit.amount,deposit.nonce));
-      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount).add(1n), nonce, depositProofSelfSigned)).to.revertedWith('invalid deposit proof')
+      const { treasury, coin, otherAccount, depositAmount, nonce, deposit } = await whitelistWithdrawSetup()
+      const depositProofSelfSigned = otherAccount.signMessage(
+        generateWithdrawHash(deposit.owner, deposit.coin, deposit.amount, deposit.nonce)
+      )
+      await expect(
+        treasury
+          .connect(otherAccount)
+          .whitelistWithdraw(coin.address, BigNumber.from(depositAmount).add(1n), nonce, depositProofSelfSigned)
+      ).to.revertedWith('invalid deposit proof')
     })
 
     it('txn Should be fail if nonce has been used ', async function () {
-      const {treasury, coin, otherAccount, depositAmount, nonce, depositProof} = await whitelistWithdrawSetup();
-      await treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof); 
-      await expect(treasury.connect(otherAccount).whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof)).to.revertedWith('nonce has been used')
+      const { treasury, coin, otherAccount, depositAmount, nonce, depositProof } = await whitelistWithdrawSetup()
+      await treasury
+        .connect(otherAccount)
+        .whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof)
+      await expect(
+        treasury
+          .connect(otherAccount)
+          .whitelistWithdraw(coin.address, BigNumber.from(depositAmount), nonce, depositProof)
+      ).to.revertedWith('nonce has been used')
     })
   })
-
 })
 
-function generateWithdrawHash(
-  owner: string,
-  coin: string,
-  depositAmount: BigNumberish,
-  nonce: BigNumberish
-) {
+function generateWithdrawHash(owner: string, coin: string, depositAmount: BigNumberish, nonce: BigNumberish) {
   const hashToSign = ethers.utils.keccak256(
-    ethers.utils.solidityPack(
-      [
-        'address',
-        'address',
-        'uint256',
-        'uint256',
-      ],
-      [
-        owner,
-        coin,
-        depositAmount,
-        nonce
-      ]
-    )
+    ethers.utils.solidityPack(['address', 'address', 'uint256', 'uint256'], [owner, coin, depositAmount, nonce])
   )
   return ethers.utils.arrayify(hashToSign)
 }

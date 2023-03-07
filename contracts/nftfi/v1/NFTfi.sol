@@ -48,7 +48,6 @@ import './openzeppelin/SafeMath.sol';
 //         the maximumRepaymentAmount regardless of whether they repay early
 //         or not.
 contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
-
     // @notice OpenZeppelin's SafeMath library is used for all arithmetic
     //         operations to avoid overflows/underflows.
     using SafeMath for uint256;
@@ -236,7 +235,6 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         address nftCollateralContract
     );
 
-
     /* ******* */
     /* STORAGE */
     /* ******* */
@@ -252,12 +250,12 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     // @notice A mapping from a loan's identifier to the loan's details,
     //         represted by the loan struct. To fetch the lender, call
     //         NFTfi.ownerOf(loanId).
-    mapping (uint256 => Loan) public loanIdToLoan;
+    mapping(uint256 => Loan) public loanIdToLoan;
 
     // @notice A mapping tracking whether a loan has either been repaid or
     //         liquidated. This prevents an attacker trying to repay or
     //         liquidate the same loan twice.
-    mapping (uint256 => bool) public loanRepaidOrLiquidated;
+    mapping(uint256 => bool) public loanRepaidOrLiquidated;
 
     // @notice A mapping that takes both a user's address and a loan nonce
     //         that was first used when signing an off-chain order and checks
@@ -276,7 +274,7 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     //         NFTfi.cancelLoanCommitmentBeforeLoanHasBegun(), which marks the
     //         nonce as used and prevents any future loan from using the user's
     //         off-chain order that contains that nonce.
-    mapping (address => mapping (uint256 => bool)) private _nonceHasBeenUsedForUser;
+    mapping(address => mapping(uint256 => bool)) private _nonceHasBeenUsedForUser;
 
     /* *********** */
     /* CONSTRUCTOR */
@@ -381,7 +379,6 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         bytes memory _borrowerSignature,
         bytes memory _lenderSignature
     ) public whenNotPaused nonReentrant {
-
         // Save loan details to a struct in memory first, to save on gas if any
         // of the below checks fail, and to avoid the "Stack Too Deep" error by
         // clumping the parameters together into one struct held in memory.
@@ -401,15 +398,27 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         });
 
         // Sanity check loan values.
-        require(loan.maximumRepaymentAmount >= loan.loanPrincipalAmount, 'Negative interest rate loans are not allowed.');
+        require(
+            loan.maximumRepaymentAmount >= loan.loanPrincipalAmount,
+            'Negative interest rate loans are not allowed.'
+        );
         require(uint256(loan.loanDuration) <= maximumLoanDuration, 'Loan duration exceeds maximum loan duration');
         require(uint256(loan.loanDuration) != 0, 'Loan duration cannot be zero');
-        require(uint256(loan.loanAdminFeeInBasisPoints) == adminFeeInBasisPoints, 'The admin fee has changed since this order was signed.');
+        require(
+            uint256(loan.loanAdminFeeInBasisPoints) == adminFeeInBasisPoints,
+            'The admin fee has changed since this order was signed.'
+        );
 
         // Check that both the collateral and the principal come from supported
         // contracts.
-        require(erc20CurrencyIsWhitelisted[loan.loanERC20Denomination], 'Currency denomination is not whitelisted to be used by this contract');
-        require(nftContractIsWhitelisted[loan.nftCollateralContract], 'NFT collateral contract is not whitelisted to be used by this contract');
+        require(
+            erc20CurrencyIsWhitelisted[loan.loanERC20Denomination],
+            'Currency denomination is not whitelisted to be used by this contract'
+        );
+        require(
+            nftContractIsWhitelisted[loan.nftCollateralContract],
+            'NFT collateral contract is not whitelisted to be used by this contract'
+        );
 
         // Check loan nonces. These are different from Ethereum account nonces.
         // Here, these are uint256 numbers that should uniquely identify
@@ -417,33 +426,45 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         // off-chain signature for each nonce, with a nonce being any arbitrary
         // uint256 value that they have not used yet for an off-chain NFTfi
         // signature).
-        require(!_nonceHasBeenUsedForUser[msg.sender][_borrowerAndLenderNonces[0]], 'Borrower nonce invalid, borrower has either cancelled/begun this loan, or reused this nonce when signing');
+        require(
+            !_nonceHasBeenUsedForUser[msg.sender][_borrowerAndLenderNonces[0]],
+            'Borrower nonce invalid, borrower has either cancelled/begun this loan, or reused this nonce when signing'
+        );
         _nonceHasBeenUsedForUser[msg.sender][_borrowerAndLenderNonces[0]] = true;
-        require(!_nonceHasBeenUsedForUser[_lender][_borrowerAndLenderNonces[1]], 'Lender nonce invalid, lender has either cancelled/begun this loan, or reused this nonce when signing');
+        require(
+            !_nonceHasBeenUsedForUser[_lender][_borrowerAndLenderNonces[1]],
+            'Lender nonce invalid, lender has either cancelled/begun this loan, or reused this nonce when signing'
+        );
         _nonceHasBeenUsedForUser[_lender][_borrowerAndLenderNonces[1]] = true;
 
         // Check that both signatures are valid.
-        require(isValidBorrowerSignature(
-            loan.nftCollateralId,
-            _borrowerAndLenderNonces[0],//_borrowerNonce,
-            loan.nftCollateralContract,
-            msg.sender,      //borrower,
-            _borrowerSignature
-        ), 'Borrower signature is invalid');
-        require(isValidLenderSignature(
-            loan.loanPrincipalAmount,
-            loan.maximumRepaymentAmount,
-            loan.nftCollateralId,
-            loan.loanDuration,
-            loan.loanInterestRateForDurationInBasisPoints,
-            loan.loanAdminFeeInBasisPoints,
-            _borrowerAndLenderNonces[1],//_lenderNonce,
-            loan.nftCollateralContract,
-            loan.loanERC20Denomination,
-            _lender,
-            loan.interestIsProRated,
-            _lenderSignature
-        ), 'Lender signature is invalid');
+        require(
+            isValidBorrowerSignature(
+                loan.nftCollateralId,
+                _borrowerAndLenderNonces[0], //_borrowerNonce,
+                loan.nftCollateralContract,
+                msg.sender, //borrower,
+                _borrowerSignature
+            ),
+            'Borrower signature is invalid'
+        );
+        require(
+            isValidLenderSignature(
+                loan.loanPrincipalAmount,
+                loan.maximumRepaymentAmount,
+                loan.nftCollateralId,
+                loan.loanDuration,
+                loan.loanInterestRateForDurationInBasisPoints,
+                loan.loanAdminFeeInBasisPoints,
+                _borrowerAndLenderNonces[1], //_lenderNonce,
+                loan.nftCollateralContract,
+                loan.loanERC20Denomination,
+                _lender,
+                loan.interestIsProRated,
+                _lenderSignature
+            ),
+            'Lender signature is invalid'
+        );
 
         // Add the loan to storage before moving collateral/principal to follow
         // the Checks-Effects-Interactions pattern.
@@ -452,11 +473,14 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
 
         // Update number of active loans.
         totalActiveLoans = totalActiveLoans.add(1);
-        require(totalActiveLoans <= maximumNumberOfActiveLoans, 'Contract has reached the maximum number of active loans allowed by admins');
+        require(
+            totalActiveLoans <= maximumNumberOfActiveLoans,
+            'Contract has reached the maximum number of active loans allowed by admins'
+        );
 
         // Transfer collateral from borrower to this contract to be held until
         // loan completion.
-        IERC721(loan.nftCollateralContract).transferFrom(msg.sender, address(this), loan.nftCollateralId);
+        IIERC721(loan.nftCollateralContract).transferFrom(msg.sender, address(this), loan.nftCollateralId);
 
         // Transfer principal from lender to borrower.
         IIERC20(loan.loanERC20Denomination).transferFrom(_lender, msg.sender, loan.loanPrincipalAmount);
@@ -468,12 +492,12 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         // Emit an event with all relevant details from this transaction.
         emit LoanStarted(
             loan.loanId,
-            msg.sender,      //borrower,
+            msg.sender, //borrower,
             _lender,
             loan.loanPrincipalAmount,
             loan.maximumRepaymentAmount,
             loan.nftCollateralId,
-            now,             //_loanStartTime
+            now, //_loanStartTime
             loan.loanDuration,
             loan.loanInterestRateForDurationInBasisPoints,
             loan.nftCollateralContract,
@@ -519,7 +543,7 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
 
         // Calculate amounts to send to lender and admins
         uint256 interestDue = (loan.maximumRepaymentAmount).sub(loan.loanPrincipalAmount);
-        if(loan.interestIsProRated == true){
+        if (loan.interestIsProRated == true) {
             interestDue = _computeInterestDue(
                 loan.loanPrincipalAmount,
                 loan.maximumRepaymentAmount,
@@ -545,11 +569,10 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         IIERC20(loan.loanERC20Denomination).transferFrom(loan.borrower, owner(), adminFee);
 
         // Transfer collateral from this contract to borrower.
-        require(_transferNftToAddress(
-            loan.nftCollateralContract,
-            loan.nftCollateralId,
-            loan.borrower
-        ), 'NFT was not successfully transferred');
+        require(
+            _transferNftToAddress(loan.nftCollateralContract, loan.nftCollateralId, loan.borrower),
+            'NFT was not successfully transferred'
+        );
 
         // Destroy the lender's promissory note.
         _burn(_loanId);
@@ -616,11 +639,10 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
 
         // Transfer collateral from this contract to the lender, since the
         // lender is seizing collateral for an overdue loan.
-        require(_transferNftToAddress(
-            loan.nftCollateralContract,
-            loan.nftCollateralId,
-            lender
-        ), 'NFT was not successfully transferred');
+        require(
+            _transferNftToAddress(loan.nftCollateralContract, loan.nftCollateralId, lender),
+            'NFT was not successfully transferred'
+        );
 
         // Destroy the lender's promissory note for this loan, since by seizing
         // the collateral, the lender has forfeit the rights to the loan
@@ -666,7 +688,10 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     //         nonce as used and prevents any future loan from using the user's
     //         off-chain order that contains that nonce.
     function cancelLoanCommitmentBeforeLoanHasBegun(uint256 _nonce) external {
-        require(!_nonceHasBeenUsedForUser[msg.sender][_nonce], 'Nonce invalid, user has either cancelled/begun this loan, or reused a nonce when signing');
+        require(
+            !_nonceHasBeenUsedForUser[msg.sender][_nonce],
+            'Nonce invalid, user has either cancelled/begun this loan, or reused a nonce when signing'
+        );
         _nonceHasBeenUsedForUser[msg.sender][_nonce] = true;
     }
 
@@ -687,11 +712,17 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     //         currency.
     function getPayoffAmount(uint256 _loanId) public view returns (uint256) {
         Loan storage loan = loanIdToLoan[_loanId];
-        if(loan.interestIsProRated == false){
+        if (loan.interestIsProRated == false) {
             return loan.maximumRepaymentAmount;
         } else {
             uint256 loanDurationSoFarInSeconds = now.sub(uint256(loan.loanStartTime));
-            uint256 interestDue = _computeInterestDue(loan.loanPrincipalAmount, loan.maximumRepaymentAmount, loanDurationSoFarInSeconds, uint256(loan.loanDuration), uint256(loan.loanInterestRateForDurationInBasisPoints));
+            uint256 interestDue = _computeInterestDue(
+                loan.loanPrincipalAmount,
+                loan.maximumRepaymentAmount,
+                loanDurationSoFarInSeconds,
+                uint256(loan.loanDuration),
+                uint256(loan.loanInterestRateForDurationInBasisPoints)
+            );
             return (loan.loanPrincipalAmount).add(interestDue);
         }
     }
@@ -745,10 +776,19 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     //         totalDuration passed.
     // @return The quantity of interest due, measured in the smallest units of
     //         the ERC20 currency used to pay this loan.
-    function _computeInterestDue(uint256 _loanPrincipalAmount, uint256 _maximumRepaymentAmount, uint256 _loanDurationSoFarInSeconds, uint256 _loanTotalDurationAgreedTo, uint256 _loanInterestRateForDurationInBasisPoints) internal pure returns (uint256) {
-        uint256 interestDueAfterEntireDuration = (_loanPrincipalAmount.mul(_loanInterestRateForDurationInBasisPoints)).div(uint256(10000));
-        uint256 interestDueAfterElapsedDuration = (interestDueAfterEntireDuration.mul(_loanDurationSoFarInSeconds)).div(_loanTotalDurationAgreedTo);
-        if(_loanPrincipalAmount.add(interestDueAfterElapsedDuration) > _maximumRepaymentAmount){
+    function _computeInterestDue(
+        uint256 _loanPrincipalAmount,
+        uint256 _maximumRepaymentAmount,
+        uint256 _loanDurationSoFarInSeconds,
+        uint256 _loanTotalDurationAgreedTo,
+        uint256 _loanInterestRateForDurationInBasisPoints
+    ) internal pure returns (uint256) {
+        uint256 interestDueAfterEntireDuration = (_loanPrincipalAmount.mul(_loanInterestRateForDurationInBasisPoints))
+            .div(uint256(10000));
+        uint256 interestDueAfterElapsedDuration = (interestDueAfterEntireDuration.mul(_loanDurationSoFarInSeconds)).div(
+            _loanTotalDurationAgreedTo
+        );
+        if (_loanPrincipalAmount.add(interestDueAfterElapsedDuration) > _maximumRepaymentAmount) {
             return _maximumRepaymentAmount.sub(_loanPrincipalAmount);
         } else {
             return interestDueAfterElapsedDuration;
@@ -769,7 +809,7 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     // @return The quantity of ERC20 currency (measured in smalled units of
     //         that ERC20 currency) that is due as an admin fee.
     function _computeAdminFee(uint256 _interestDue, uint256 _adminFeeInBasisPoints) internal pure returns (uint256) {
-    	return (_interestDue.mul(_adminFeeInBasisPoints)).div(10000);
+        return (_interestDue.mul(_adminFeeInBasisPoints)).div(10000);
     }
 
     // @notice We call this function when we wish to transfer an NFT from our
@@ -794,7 +834,7 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
     function _transferNftToAddress(address _nftContract, uint256 _nftId, address _recipient) internal returns (bool) {
         // Try to call transferFrom()
         bool transferFromSucceeded = _attemptTransferFrom(_nftContract, _nftId, _recipient);
-        if(transferFromSucceeded){
+        if (transferFromSucceeded) {
             return true;
         } else {
             // Try to call transfer()
@@ -818,13 +858,15 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         // @notice Some NFT contracts will not allow you to approve an NFT that
         //         you own, so we cannot simply call approve() here, we have to
         //         try to call it in a manner that allows the call to fail.
-        _nftContract.call(abi.encodeWithSelector(IERC721(_nftContract).approve.selector, address(this), _nftId));
+        _nftContract.call(abi.encodeWithSelector(IIERC721(_nftContract).approve.selector, address(this), _nftId));
 
         // @notice Some NFT contracts will not allow you to call transferFrom()
         //         for an NFT that you own but that is not approved, so we
         //         cannot simply call transferFrom() here, we have to try to
         //         call it in a manner that allows the call to fail.
-        (bool success, ) = _nftContract.call(abi.encodeWithSelector(IERC721(_nftContract).transferFrom.selector, address(this), _recipient, _nftId));
+        (bool success, ) = _nftContract.call(
+            abi.encodeWithSelector(IIERC721(_nftContract).transferFrom.selector, address(this), _recipient, _nftId)
+        );
         return success;
     }
 
@@ -846,7 +888,9 @@ contract NFTfi is NFTfiAdmin, NFTfiSigningUtils, ERC721 {
         //         Cryptokitties), so we cannot simply call transfer() here, we
         //         have to try to call it in a manner that allows the call to
         //         fail.
-        (bool success, ) = _nftContract.call(abi.encodeWithSelector(ICryptoKittiesCore(_nftContract).transfer.selector, _recipient, _nftId));
+        (bool success, ) = _nftContract.call(
+            abi.encodeWithSelector(ICryptoKittiesCore(_nftContract).transfer.selector, _recipient, _nftId)
+        );
         return success;
     }
 
