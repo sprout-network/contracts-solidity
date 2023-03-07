@@ -18,11 +18,23 @@ async function main() {
   const Nft = await ethers.getContractFactory('NFT')
   const nft = await Nft.deploy('Account Bond NFTs', 'ABN', 'https://1ton-labs.vercel.app/api/metadata/')
 
+  const NFTfi = await ethers.getContractFactory('NFTfi')
+  const nftfi = await NFTfi.deploy()
+
   await lock.deployed()
   await nft.deployed()
+  await nftfi.deployed()
 
   console.log(`Lock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`)
   console.log(`Account Bond NFT deployed to ${nft.address}`)
+  console.log(`Account NFTfi deployed to ${nftfi.address}`)
+
+  const owner = await nftfi.owner()
+  console.log(`NFTfi owner: ${owner}`)
+  await nftfi.whitelistNFTContract(nft.address,true)
+    .then((tx) => tx.wait())
+  console.log(`whitelisted nft ${nft.address}`)
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
