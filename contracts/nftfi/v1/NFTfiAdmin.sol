@@ -69,9 +69,6 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
 
         // Whitelist mainnet DAI
         erc20CurrencyIsWhitelisted[address(0x6B175474E89094C44Da98b954EedeAC495271d0F)] = true;
-
-        // Whitelist mainnet CryptoKitties
-        nftContractIsWhitelisted[address(0x06012c8cf97BEaD5deAe237070F9587f8E7A266d)] = true;
     }
 
     /* ********* */

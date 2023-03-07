@@ -1,7 +1,6 @@
-import { time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { BigNumber } from 'ethers'
 import { addNftToWhitelist, signOrder } from './helpers/nftfi'
 
 describe('NFTfi', function () {
@@ -46,7 +45,7 @@ describe('NFTfi', function () {
       expect(await nftfi.owner()).to.equal(owner.address)
     })
 
-    it('Should be the right owner', async function () {
+    it('Should be the right whitelist of NFT', async function () {
       const { nftfi, owner } = await loadFixture(deployNFTfiFixture)
       const nftAddr = '0x0c60b40289ff15ff6afdfa668d1a743dc6e53cf3'
       expect(await nftfi.nftContractIsWhitelisted(nftAddr)).to.equal(false)
