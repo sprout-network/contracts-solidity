@@ -27,14 +27,14 @@ describe('WETH', function () {
   })
 
   describe('Deposit', function () {
-    it('Should set the right name and symbol', async function () {
+    it('Should be right balance', async function () {
       const { weth, user1 } = await loadFixture(connectWETHFixture)
-      let balance = await weth.balanceOf(user1.address)
-      expect(balance.eq(0n)).to.true
+      let preBalance = await weth.balanceOf(user1.address)
       const amount = ethers.utils.parseEther('1.0')
       await ethToWeth(weth.address, user1, amount)
-      balance = await weth.balanceOf(user1.address)
-      expect(balance.eq(amount)).to.true
+      const balanceEx=preBalance.add(amount)
+      const balance = await weth.balanceOf(user1.address)
+      expect(balance.eq(balanceEx)).to.true
     })
   })
 })
