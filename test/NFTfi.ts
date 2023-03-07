@@ -2,6 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { addNftToWhitelist, signOrder } from './helpers/nftfi'
+import { DAI_ADDRESS, WBNB_ADDRESS } from './constants'
 
 describe('NFTfi', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -9,7 +10,7 @@ describe('NFTfi', function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployNFTfiFixture() {
     const NFTfi = await ethers.getContractFactory('NFTfi')
-    const nftfi=await NFTfi.deploy()
+    const nftfi = await NFTfi.deploy()
     await nftfi.deployed()
 
     // Contracts are deployed using the first signer/account by default
@@ -32,8 +33,8 @@ describe('NFTfi', function () {
     it('Should be the right whitelist of erc20', async function () {
       const { nftfi } = await loadFixture(deployNFTfiFixture)
       const whitelist = [
-        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', //WETH
-        '0x6B175474E89094C44Da98b954EedeAC495271d0F', //DAI
+        WBNB_ADDRESS, //WETH
+        DAI_ADDRESS, //DAI
       ]
       for (const w of whitelist) {
         expect(await nftfi.erc20CurrencyIsWhitelisted(w)).to.equal(true)

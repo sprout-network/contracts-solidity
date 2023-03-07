@@ -2,13 +2,14 @@ import { time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { ethers } from 'hardhat'
 import { transferETH } from './helpers/common'
 import { addNftToWhitelist, signOrder } from './helpers/nftfi'
-import { approveWeth, ethToWeth } from './helpers/weth'
+import { approveWrappedCoin, toWrap } from './helpers/nativeCoin'
 import { approveNFT, mintNFT } from './helpers/nft'
 import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs'
 import { expect } from 'chai'
 import { BigNumber, BigNumberish, Event } from 'ethers'
 import { BorrowerOrder, LenderOrder } from '../helpers/order'
 import { INFTfi } from '../typechain-types'
+import { WBNB_ADDRESS } from './constants'
 
 describe('integrate testing', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -23,7 +24,7 @@ describe('integrate testing', function () {
     // await nftfi.deployed()
 
     const NFTfi = await ethers.getContractFactory('NFTfi')
-    const nftfi=await NFTfi.deploy()
+    const nftfi = await NFTfi.deploy()
     await nftfi.deployed()
 
     const name = 'Creator'
@@ -35,26 +36,26 @@ describe('integrate testing', function () {
     await nft.deployed()
     await mintNFT(nft.address, borrower, null, 10)
 
-    const wethAddress = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
-    const weth = await ethers.getContractAt('WETH9', wethAddress)
-    await weth.deployed()
+    const wbnbAddress = WBNB_ADDRESS
+    const wbnb = await ethers.getContractAt('WBNB', wbnbAddress)
+    await wbnb.deployed()
 
     const nftfiOwnerAddr = await nftfi.owner()
     const nftfiOwner = await ethers.getImpersonatedSigner(nftfiOwnerAddr)
     await addNftToWhitelist(nftfi.address, await nftfi.owner(), nft.address)
-    await ethToWeth(wethAddress, borrower, ethers.utils.parseEther('10.0'))
-    await ethToWeth(wethAddress, lender, ethers.utils.parseEther('10.0'))
+    await toWrap(wbnbAddress, borrower, ethers.utils.parseEther('10.0'))
+    await toWrap(wbnbAddress, lender, ethers.utils.parseEther('10.0'))
 
-    return { nftfi, nft, weth, nftfiOwner, borrower, lender }
+    return { nftfi, nft, wbnb, nftfiOwner, borrower, lender }
   }
 
   describe('beginLoan', function () {
     it('Txn Should be successful if signatures are correct', async function () {
-      const { nftfi, borrower, lender, nft, weth } = await loadFixture(contractFixture)
+      const { nftfi, borrower, lender, nft, wbnb } = await loadFixture(contractFixture)
       const chainId = await nftfi.getChainID()
       const nftCollateralContract = nft.address
       const nftCollateralId = 1n
-      const loanERC20Denomination = weth.address
+      const loanERC20Denomination = wbnb.address
       const { borrowerOrder, lenderOrder } = generateTestOrder(
         chainId,
         lender.address,
@@ -68,7 +69,7 @@ describe('integrate testing', function () {
       await approveNFT(nft.address, borrower, nftfi.address, nftCollateralId)
 
       const lenderSig = await signOrder(lender, 'LEND', lenderOrder)
-      await approveWeth(weth.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
+      await approveWrappedCoin(wbnb.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
       await expect(
         nftfi.beginLoan(
           lenderOrder.loanPrincipalAmount,
@@ -104,11 +105,11 @@ describe('integrate testing', function () {
   })
   describe('payBackLoan', function () {
     const loanFixture = async () => {
-      const { nftfi, borrower, nftfiOwner, lender, nft, weth } = await loadFixture(contractFixture)
+      const { nftfi, borrower, nftfiOwner, lender, nft, wbnb } = await loadFixture(contractFixture)
       const chainId = await nftfi.getChainID()
       const nftCollateralContract = nft.address
       const nftCollateralId = 1n
-      const loanERC20Denomination = weth.address
+      const loanERC20Denomination = wbnb.address
       const { borrowerOrder, lenderOrder } = generateTestOrder(
         chainId,
         lender.address,
@@ -122,7 +123,7 @@ describe('integrate testing', function () {
       await approveNFT(nft.address, borrower, nftfi.address, nftCollateralId)
 
       const lenderSig = await signOrder(lender, 'LEND', lenderOrder)
-      await approveWeth(weth.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
+      await approveWrappedCoin(wbnb.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
       const tx = await nftfi.beginLoan(
         lenderOrder.loanPrincipalAmount,
         lenderOrder.maximumRepaymentAmount,
@@ -141,11 +142,11 @@ describe('integrate testing', function () {
       const evts = receipt.events
       if (!evts) throw new Error(`event not found`)
       const loanEvent = getLoanEvent(evts[evts.length - 1])
-      return { nftfi, nft, weth, nftfiOwner, borrower, lender, loanEvent }
+      return { nftfi, nft, wbnb, nftfiOwner, borrower, lender, loanEvent }
     }
     it('Txn Should be successful', async function () {
-      const { nftfi, borrower, lender, nft, weth, loanEvent } = await loadFixture(loanFixture)
-      await approveWeth(weth.address, borrower, nftfi.address, loanEvent.maximumRepaymentAmount)
+      const { nftfi, borrower, lender, nft, wbnb, loanEvent } = await loadFixture(loanFixture)
+      await approveWrappedCoin(wbnb.address, borrower, nftfi.address, loanEvent.maximumRepaymentAmount)
       await expect(nftfi.payBackLoan(loanEvent.loanId)).to.emit(nftfi, 'LoanRepaid').withArgs(
         loanEvent.loanId,
         loanEvent.borrower,
@@ -161,11 +162,11 @@ describe('integrate testing', function () {
 
     describe('liquidateLoan', function () {
       const expireLoanFixture = async () => {
-        const { nftfi, borrower, nftfiOwner, lender, nft, weth } = await loadFixture(contractFixture)
+        const { nftfi, borrower, nftfiOwner, lender, nft, wbnb } = await loadFixture(contractFixture)
         const chainId = await nftfi.getChainID()
         const nftCollateralContract = nft.address
         const nftCollateralId = 1n
-        const loanERC20Denomination = weth.address
+        const loanERC20Denomination = wbnb.address
         const loadInterval = 3
         const { borrowerOrder, lenderOrder } = generateTestOrder(
           chainId,
@@ -180,7 +181,7 @@ describe('integrate testing', function () {
         await approveNFT(nft.address, borrower, nftfi.address, nftCollateralId)
 
         const lenderSig = await signOrder(lender, 'LEND', lenderOrder)
-        await approveWeth(weth.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
+        await approveWrappedCoin(wbnb.address, lender, nftfi.address, lenderOrder.loanPrincipalAmount)
         const tx = await nftfi.beginLoan(
           lenderOrder.loanPrincipalAmount,
           lenderOrder.maximumRepaymentAmount,
@@ -200,7 +201,7 @@ describe('integrate testing', function () {
         if (!evts) throw new Error(`event not found`)
         const loanEvent = getLoanEvent(evts[evts.length - 1])
         await new Promise((f) => setTimeout(f, (loadInterval + 1) * 1000))
-        return { nftfi, nft, weth, nftfiOwner, borrower, lender, loanEvent }
+        return { nftfi, nft, wbnb, nftfiOwner, borrower, lender, loanEvent }
       }
       it('Txn Should be success', async function () {
         const { nftfi, borrower, lender, loanEvent } = await loadFixture(expireLoanFixture)

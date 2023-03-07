@@ -9,7 +9,6 @@ import './openzeppelin/ReentrancyGuard.sol';
 // @author smartcontractdev.eth, creator of wrappedkitties.eth, cwhelper.eth, and
 //         kittybounties.eth
 contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
-
     /* ****** */
     /* EVENTS */
     /* ****** */
@@ -21,9 +20,7 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
     // @param  newAdminFee - The new admin fee measured in basis points. This
     //         is a percent of the interest paid upon a loan's completion that
     //         go to the contract admins.
-    event AdminFeeUpdated(
-        uint256 newAdminFee
-    );
+    event AdminFeeUpdated(uint256 newAdminFee);
 
     /* ******* */
     /* STORAGE */
@@ -33,13 +30,13 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
     //         currency is whitelisted to be used by this contract. Note that
     //         NFTfi only supports loans that use ERC20 currencies that are
     //         whitelisted, all other calls to beginLoan() will fail.
-    mapping (address => bool) public erc20CurrencyIsWhitelisted;
+    mapping(address => bool) public erc20CurrencyIsWhitelisted;
 
     // @notice A mapping from from an NFT contract's address to whether that
     //         contract is whitelisted to be used by this contract. Note that
     //         NFTfi only supports loans that use NFT collateral from contracts
     //         that are whitelisted, all other calls to beginLoan() will fail.
-    mapping (address => bool) public nftContractIsWhitelisted;
+    mapping(address => bool) public nftContractIsWhitelisted;
 
     // @notice The maximum duration of any loan started on this platform,
     //         measured in seconds. This is both a sanity-check for borrowers
@@ -64,11 +61,11 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
     /* *********** */
 
     constructor() internal {
-        // Whitelist mainnet WETH
-        erc20CurrencyIsWhitelisted[address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)] = true;
+        // Whitelist mainnet WBNB
+        erc20CurrencyIsWhitelisted[address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c)] = true;
 
         // Whitelist mainnet DAI
-        erc20CurrencyIsWhitelisted[address(0x6B175474E89094C44Da98b954EedeAC495271d0F)] = true;
+        erc20CurrencyIsWhitelisted[address(0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3)] = true;
     }
 
     /* ********* */
@@ -80,7 +77,7 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
      * @return string representing the token name
      */
     function name() external pure returns (string memory) {
-        return "NFTfi Promissory Note";
+        return 'NFTfi Promissory Note';
     }
 
     /**
@@ -88,7 +85,7 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
      * @return string representing the token symbol
      */
     function symbol() external pure returns (string memory) {
-        return "NFTfi";
+        return 'NFTfi';
     }
 
     // @notice This function can be called by admins to change the whitelist
@@ -125,7 +122,7 @@ contract NFTfiAdmin is Ownable, Pausable, ReentrancyGuard {
     }
 
     // @notice This function can be called by admins to change the
-    //         maximumNumberOfActiveLoans. 
+    //         maximumNumberOfActiveLoans.
     // @param  _newMaximumNumberOfActiveLoans - The new maximum number of
     //         active loans, used to limit the risk that NFTfi faces while the
     //         project is first getting started.
