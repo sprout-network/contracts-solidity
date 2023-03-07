@@ -1,16 +1,16 @@
 pragma solidity ^0.5.0;
 
-import "./IERC721.sol";
-import "./IERC721Receiver.sol";
-import "./SafeMath.sol";
-import "./Address.sol";
-import "./ERC165.sol";
+import './IIERC721.sol';
+import './IERC721Receiver.sol';
+import './SafeMath.sol';
+import './Address.sol';
+import './ERC165.sol';
 
 /**
  * @title ERC721 Non-Fungible Token Standard basic implementation
  * @dev see https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
  */
-contract ERC721 is ERC165, IERC721 {
+contract ERC721 is ERC165, IIERC721 {
     using SafeMath for uint256;
     using Address for address;
 
@@ -19,18 +19,19 @@ contract ERC721 is ERC165, IERC721 {
     bytes4 private constant _ERC721_RECEIVED = 0x150b7a02;
 
     // Mapping from token ID to owner
-    mapping (uint256 => address) private _tokenOwner;
+    mapping(uint256 => address) private _tokenOwner;
 
     // Mapping from token ID to approved address
-    mapping (uint256 => address) private _tokenApprovals;
+    mapping(uint256 => address) private _tokenApprovals;
 
     // Mapping from owner to number of owned token
-    mapping (address => uint256) private _ownedTokensCount;
+    mapping(address => uint256) private _ownedTokensCount;
 
     // Mapping from owner to operator approvals
-    mapping (address => mapping (address => bool)) private _operatorApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     bytes4 private constant _INTERFACE_ID_ERC721 = 0x80ac58cd;
+
     /*
      * 0x80ac58cd ===
      *     bytes4(keccak256('balanceOf(address)')) ^
@@ -44,7 +45,7 @@ contract ERC721 is ERC165, IERC721 {
      *     bytes4(keccak256('safeTransferFrom(address,address,uint256,bytes)'))
      */
 
-    constructor () public {
+    constructor() public {
         // register the supported interfaces to conform to ERC721 via ERC165
         _registerInterface(_INTERFACE_ID_ERC721);
     }
@@ -127,7 +128,7 @@ contract ERC721 is ERC165, IERC721 {
      * @param from current owner of the token
      * @param to address to receive the ownership of the given token ID
      * @param tokenId uint256 ID of the token to be transferred
-    */
+     */
     function transferFrom(address from, address to, uint256 tokenId) public {
         require(_isApprovedOrOwner(msg.sender, tokenId));
 
@@ -145,9 +146,9 @@ contract ERC721 is ERC165, IERC721 {
      * @param from current owner of the token
      * @param to address to receive the ownership of the given token ID
      * @param tokenId uint256 ID of the token to be transferred
-    */
+     */
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
-        safeTransferFrom(from, to, tokenId, "");
+        safeTransferFrom(from, to, tokenId, '');
     }
 
     /**
@@ -238,7 +239,7 @@ contract ERC721 is ERC165, IERC721 {
      * @param from current owner of the token
      * @param to address to receive the ownership of the given token ID
      * @param tokenId uint256 ID of the token to be transferred
-    */
+     */
     function _transferFrom(address from, address to, uint256 tokenId) internal {
         require(ownerOf(tokenId) == from);
         require(to != address(0));
@@ -262,9 +263,12 @@ contract ERC721 is ERC165, IERC721 {
      * @param _data bytes optional data to send along with the call
      * @return whether the call correctly returned the expected magic value
      */
-    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory _data)
-        internal returns (bool)
-    {
+    function _checkOnERC721Received(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory _data
+    ) internal returns (bool) {
         if (!to.isContract()) {
             return true;
         }
