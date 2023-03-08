@@ -4,8 +4,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "script": "hardhat run",
-    "lint": "prettier -w helpers test scripts contracts",
-    "testnode": "concurrently --kill-others-on-fail \"npx hardhat node\" \"sleep 5 && npx hardhat run --network localhost scripts/deploy.ts\""
+    "lint": "prettier -w helpers test scripts contracts tasks",
+    "testnode": "concurrently --kill-others-on-fail \"npx hardhat node\" \"sleep 5 && npx hardhat run --network localhost scripts/deploy.ts\" \"sleep 7 && npx hardhat run --network localhost scripts/transferCoin.ts\""
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
