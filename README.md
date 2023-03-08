@@ -42,5 +42,5 @@ You should see the addresses in the following example output in **color red**:
 ```
 
 ### Getting testing ETH
-1. Set the env variable `TESTING_METAMASK_ADDRESS` value to your desired testing address
+1. Set the env variable `TESTING_METAMASK_ADDRESSES` value to your desired testing addresses. Separate multiple addresses with comma.
 2. Run `yarn testnode`, then 30 ETH will be sent to your testing address

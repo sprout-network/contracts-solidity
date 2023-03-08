@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat'
+import { WBNB_ADDRESS } from '../test/constants'
 
 async function main() {
 
@@ -13,21 +14,27 @@ async function main() {
 
   console.log(`\x1b[31mAccount Bond NFT deployed to ${nft.address}\x1b[0m`)
   console.log(`\x1b[31mAccount NFTfi deployed to ${nftfi.address}\x1b[0m`)
+  console.log(`\x1b[31mWBNB address: ${WBNB_ADDRESS}\x1b[0m`)
 
   const owner = await nftfi.owner()
   console.log(`\x1b[31mNFTfi owner: ${owner}\x1b[0m`)
   await nftfi.whitelistNFTContract(nft.address, true).then((tx) => tx.wait())
   console.log(`\x1b[31mWhitelisted NFT: ${nft.address}\x1b[0m`)
 
-  if (process.env.TESTING_METAMASK_ADDRESS) {
+  if (process.env.TESTING_METAMASK_ADDRESSES) {
+    const addresses = process.env.TESTING_METAMASK_ADDRESSES.split(',')
     const amount = 30
     const [owner] = await ethers.getSigners()
-    await owner.sendTransaction({
-      to: process.env.TESTING_METAMASK_ADDRESS,
-      value: ethers.utils.parseEther(`${amount}`),
-    })
 
-    console.log(`\x1b[31mTransferred ${amount} testing ETH to ${process.env.TESTING_METAMASK_ADDRESS}\x1b[0m`)
+    addresses.forEach(async (address) => {
+      if (address) {
+        await owner.sendTransaction({
+          to: address,
+          value: ethers.utils.parseEther(`${amount}`),
+        })
+        console.log(`\x1b[31mTransferred ${amount} testing ETH to ${address}\x1b[0m`)
+      }
+    })
   }
 }
 
