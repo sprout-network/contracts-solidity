@@ -54,7 +54,7 @@ contract SubscribePaidMw is ISubscribeMiddleware, FeeMw {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address treasury) FeeMw(treasury) {}
+    constructor(address treasury, address sproutTreasury) FeeMw(treasury, sproutTreasury) {}
 
     /*//////////////////////////////////////////////////////////////
                               EXTERNAL
@@ -102,7 +102,14 @@ contract SubscribePaidMw is ISubscribeMiddleware, FeeMw {
             );
         }
 
-        IERC20(currency).safeTransferFrom(subscriber, _paidSubscribeData[msg.sender][profileId].recipient, actualPaid);
+        address recipient ;
+        if(isFeeRedirect[profileId]){
+            recipient = SPROUT_TREASURY ;
+        }else{
+            recipient = _paidSubscribeData[msg.sender][profileId].recipient ;
+        }
+
+        IERC20(currency).safeTransferFrom(subscriber, recipient, actualPaid);
 
         if (treasuryCollected > 0) {
             IERC20(currency).safeTransferFrom(subscriber, _treasuryAddress(), treasuryCollected);

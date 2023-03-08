@@ -1,13 +1,14 @@
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { ethers } from 'hardhat'
-import { Event } from 'ethers'
-import { expect } from 'chai'
-import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { DataTypes } from '../../typechain-types/contracts/cyberconnect/interfaces/IProfileNFT'
-import { BigNumber, ContractTransaction } from 'ethers'
-import { TransferEvent } from '../../typechain-types/@openzeppelin/contracts/token/ERC721/IERC721'
+import { BigNumber, ContractTransaction, Event } from 'ethers'
+import { ethers } from 'hardhat'
 import { IERC721__factory } from '../../typechain-types'
+import { DataTypes } from '../../typechain-types/contracts/cyberconnect/interfaces/IProfileNFT'
+
+export enum MwType {
+  SUBSCRIBE,
+  ESSENCE,
+  PROFILE
+}
 
 export async function createCCProfile(
   user: SignerWithAddress,
@@ -31,4 +32,23 @@ export async function setupCurrencyWhitelist(treasuryAddr: string, coinAddr: str
   const owner = await ethers.getImpersonatedSigner(await ownd.owner())
   const treasury = await ethers.getContractAt('ITreasury', treasuryAddr, owner)
   await treasury.allowCurrency(coinAddr, true).then((tx) => tx.wait())
+}
+
+export async function setupMwWhitelist(engineAddr: string, type: MwType, mwAddr: string) {
+  const owned = await ethers.getContractAt('Owned', engineAddr)
+  const owner = await ethers.getImpersonatedSigner(await owned.owner())
+  const engine = await ethers.getContractAt('ICyberEngine', engineAddr, owner)
+
+  switch(type){
+    case MwType.ESSENCE: 
+      await engine.allowEssenceMw(mwAddr, true).then((tx) => tx.wait())
+    break;
+    case MwType.PROFILE: 
+      await engine.allowProfileMw(mwAddr, true).then((tx) => tx.wait())
+    break;
+    case MwType.SUBSCRIBE: 
+      await engine.allowSubscribeMw(mwAddr, true).then((tx) => tx.wait())
+    break;
+  }
+  
 }

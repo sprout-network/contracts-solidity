@@ -58,7 +58,7 @@ contract CollectPaidMw is IEssenceMiddleware, FeeMw {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address treasury) FeeMw(treasury) {}
+    constructor(address treasury, address sproutTreasury) FeeMw(treasury, sproutTreasury) {}
 
     /*//////////////////////////////////////////////////////////////
                               EXTERNAL
@@ -130,9 +130,16 @@ contract CollectPaidMw is IEssenceMiddleware, FeeMw {
             require(_checkSubscribe(msg.sender, profileId, collector), 'NOT_SUBSCRIBED');
         }
 
+        address recipient ;
+        if(isFeeRedirect[profileId]){
+            recipient = SPROUT_TREASURY ;
+        }else{
+            recipient = _paidEssenceData[msg.sender][profileId][essenceId].recipient;
+        }
+
         IERC20(currency).safeTransferFrom(
             collector,
-            _paidEssenceData[msg.sender][profileId][essenceId].recipient,
+            recipient,
             actualPaid
         );
 
