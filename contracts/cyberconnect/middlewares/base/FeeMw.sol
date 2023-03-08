@@ -2,21 +2,37 @@
 
 pragma solidity 0.8.14;
 
+import '@openzeppelin/contracts/access/Ownable.sol';
 import {ITreasury} from '../../interfaces/ITreasury.sol';
 
-abstract contract FeeMw {
+abstract contract FeeMw is Ownable{
     /*//////////////////////////////////////////////////////////////
                               STATES
     //////////////////////////////////////////////////////////////*/
     address public immutable TREASURY; // solhint-disable-line
-
+    address public SPROUT_TREASURY; 
+    mapping(uint256 => bool) public isFeeRedirect;
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address treasury) {
+    constructor(address treasury, address sproutTreasury) {
         require(treasury != address(0), 'ZERO_TREASURY_ADDRESS');
         TREASURY = treasury;
+        SPROUT_TREASURY = sproutTreasury;
+    }
+
+    event FeeRedirect (
+        uint256 indexed profileId,
+        bool isRedirect
+    );
+    function setFeeRedirect(uint256 profileId, bool isRedirect) external onlyOwner {
+        isFeeRedirect[profileId] = isRedirect;
+        emit FeeRedirect(profileId, isRedirect);
+    } 
+
+    function setSproutTreasury(address sproutTreasury) external onlyOwner {
+        SPROUT_TREASURY = sproutTreasury;
     }
 
     /*//////////////////////////////////////////////////////////////
