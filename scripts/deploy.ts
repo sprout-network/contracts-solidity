@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat'
+import { WBNB_ADDRESS } from '../test/constants'
 
 async function main() {
   const currentTimestampInSeconds = Math.round(Date.now() / 1000)
@@ -28,6 +29,7 @@ async function main() {
   console.log(`\x1b[31mLock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}\x1b[0m`)
   console.log(`\x1b[31mAccount Bond NFT deployed to ${nft.address}\x1b[0m`)
   console.log(`\x1b[31mAccount NFTfi deployed to ${nftfi.address}\x1b[0m`)
+  console.log(`\x1b[31mWBNB address: ${WBNB_ADDRESS}\x1b[0m`)
 
   const owner = await nftfi.owner()
   console.log(`\x1b[31mNFTfi owner: ${owner}\x1b[0m`)
