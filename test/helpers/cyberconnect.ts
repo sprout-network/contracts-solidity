@@ -25,7 +25,7 @@ export async function collectEssence(
   params: DataTypes.CollectParamsStruct
 ): Promise<ContractTransaction> {
   const profileNFT = await ethers.getContractAt('IProfileNFT', ccProfileAddr, user)
-  return await profileNFT.collect(params, '0x00', '0x00')
+  return await profileNFT.collect(params, '0x', '0x')
 }
 
 export function getProfileId(event: Event): BigNumber {

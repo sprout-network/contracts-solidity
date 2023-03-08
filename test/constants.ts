@@ -15,7 +15,7 @@ export const CYBERCONNECT_CONTRACT = {
   CyberVault: '0xdd2ec94890e2d92e131a89f73bfe124137e0c10e',
   CyberGrandNFTImpl: '0x0160876ad7302cfb5d2bcfbe664a436a69383a12',
   CyberGrandNFTProxy: '0x110fe2bc9cf45d29e9764da4f6274abf13111efc',
-  SubscribePaidMw: '0x9b5678862e143c970f4a63f57dd8a677f5942c40',
+  SubscribePaidMw: '0x9b5678862e143c970F4a63f57dD8a677F5942C40',
   SubscribeOnlyOnceMw: '0xc6968831ad8bd12ebb72108f6e4c51432580870d',
   SubscribeDisallowedMw: '0x3d1c0dcff5ab0a8ede767f9c094b9e12940f6428',
   CollectPaidMw: '0xB09Ae63A2fD28686A0f386D1dDfD4b53687bf298',

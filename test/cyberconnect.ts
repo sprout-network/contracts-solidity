@@ -15,10 +15,11 @@ import { TransferEvent } from '../typechain-types/@openzeppelin/contracts/token/
 import { BigNumberish } from 'ethers'
 import { toWrap } from './helpers/nativeCoin'
 import { pack } from '@ethersproject/solidity/src.ts'
-import { generateCollectPaidMwInit } from '../helpers/mw'
+import { generateCollectPaidMwInit, generateSubscribePaidMwInit } from '../helpers/mw'
 import { IActionsEvent } from '../typechain-types'
 import { PromiseOrValue } from '../typechain-types/common'
 import { approveCoin } from './helpers/erc20'
+import { essence } from '../typechain-types/contracts/cyberconnect/middlewares'
 
 describe('CyberConnect testing', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -38,16 +39,22 @@ describe('CyberConnect testing', function () {
 
     const collectPaidMw = await ethers.getContractAt('IEssenceMiddleware', CYBERCONNECT_CONTRACT.CollectPaidMw)
     await collectPaidMw.deployed()
+
+    const subscribePaidMw = await ethers.getContractAt('ISubscribeMiddleware', CYBERCONNECT_CONTRACT.SubscribePaidMw)
+    await subscribePaidMw.deployed()
+
     const coinAddr = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' //WBNB
     const coin = await ethers.getContractAt('IERC20', coinAddr)
     await toWrap(coinAddr, user1, ethers.utils.parseEther('10'))
     await toWrap(coinAddr, user2, ethers.utils.parseEther('10'))
     await setupCurrencyWhitelist(CYBERCONNECT_CONTRACT.CyberConnectTreasury, coin.address)
-    return { engine, actions, profileNFT, collectPaidMw, coin, user1, user2 }
+    return { engine, actions, profileNFT, collectPaidMw, subscribePaidMw, coin, user1, user2 }
   }
 
   async function setupProfileFixture() {
-    const { engine, actions, profileNFT, collectPaidMw, coin, user1, user2 } = await loadFixture(connectCCFixture)
+    const { engine, actions, profileNFT, collectPaidMw, subscribePaidMw, coin, user1, user2 } = await loadFixture(
+      connectCCFixture
+    )
     let userParam1 = {
       to: user1.address,
       handle: 'holeshit1',
@@ -74,7 +81,18 @@ describe('CyberConnect testing', function () {
     }
     profileId = getProfileId(receipt.events[2])
     const userProfile2 = { ...userParam2, profileId }
-    return { engine, actions, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 }
+    return {
+      engine,
+      actions,
+      profileNFT,
+      collectPaidMw,
+      subscribePaidMw,
+      coin,
+      user1,
+      user2,
+      userProfile1,
+      userProfile2,
+    }
   }
 
   async function setupEssenceFixture() {
@@ -116,6 +134,46 @@ describe('CyberConnect testing', function () {
       userProfile1,
       userProfile2,
       userEssence1,
+    }
+  }
+
+  async function setupSubscriptionFixture() {
+    const {
+      engine,
+      actions,
+      profileNFT,
+      collectPaidMw,
+      subscribePaidMw,
+      coin,
+      user1,
+      user2,
+      userProfile1,
+      userProfile2,
+    } = await loadFixture(setupProfileFixture)
+    const tokenURI = 'http://localhost:3000/subscription.json'
+    const profileId = userProfile1.profileId
+    const mv = subscribePaidMw.address
+    const user1Subscription = {
+      amount: 1000n,
+      recipient: user1.address,
+      currency: coin.address,
+      nftAddress: '0x0000000000000000000000000000000000000000',
+      nftRequired: false,
+    }
+    const initData = generateSubscribePaidMwInit(user1Subscription)
+    await profileNFT.setSubscribeData(profileId, tokenURI, mv, initData).then((tx) => tx.wait())
+    return {
+      engine,
+      actions,
+      profileNFT,
+      collectPaidMw,
+      subscribePaidMw,
+      coin,
+      user1,
+      user2,
+      userProfile1,
+      userProfile2,
+      user1Subscription,
     }
   }
 
@@ -170,18 +228,58 @@ describe('CyberConnect testing', function () {
         )
     })
 
-    it('essence Should be collected successfully', async function () {
-      const { engine, profileNFT, actions, collectPaidMw, coin, user1, user2, userProfile1, userEssence1 } =
-        await loadFixture(setupEssenceFixture)
+    it('Should receive the coin if user collect the essence', async function () {
+      const { profileNFT, actions, collectPaidMw, coin, user1, user2, userProfile1, userEssence1 } = await loadFixture(
+        setupEssenceFixture
+      )
       const params = {
         collector: user2.address,
         profileId: userProfile1.profileId,
         essenceId: userEssence1.essenceId,
       }
+      const preBalance = await coin.balanceOf(userEssence1.recipient)
       await approveCoin(coin.address, user2, collectPaidMw.address, userEssence1.amount)
       await expect(collectEssence(user2, profileNFT.address, params))
         .to.emit(actions, 'CollectEssence')
         .withArgs(params.collector, params.profileId, params.essenceId, anyValue, anyValue, anyValue)
+      const postBalance = await coin.balanceOf(userEssence1.recipient)
+      expect(postBalance.gt(preBalance)).to.be.true
+    })
+  })
+
+  describe('subscribe testing', function () {
+    it('Should setup the subscription plan successfully', async function () {
+      const { engine, profileNFT, actions, collectPaidMw, subscribePaidMw, coin, user1, userProfile1 } =
+        await loadFixture(setupProfileFixture)
+      const tokenURI = 'http://localhost:3000/subscription.json'
+      const profileId = userProfile1.profileId
+      const mv = subscribePaidMw.address
+      const data = {
+        amount: 1000n,
+        recipient: user1.address,
+        currency: coin.address,
+        nftAddress: '0x0000000000000000000000000000000000000000',
+        nftRequired: false,
+      }
+      const initData = generateSubscribePaidMwInit(data)
+      await expect(profileNFT.setSubscribeData(profileId, tokenURI, mv, initData))
+        .to.emit(actions, 'SetSubscribeData')
+        .withArgs(profileId, tokenURI, mv, anyValue)
+    })
+
+    it('Should receive the coin if user subscribe another user', async function () {
+      const { profileNFT, actions, subscribePaidMw, coin, user1, user2, userProfile1, user1Subscription } =
+        await loadFixture(setupSubscriptionFixture)
+      const params = {
+        profileIds: [userProfile1.profileId],
+      }
+      const preBalance = await coin.balanceOf(user1Subscription.recipient)
+      await approveCoin(coin.address, user2, subscribePaidMw.address, user1Subscription.amount)
+      await expect(profileNFT.connect(user2).subscribe(params, ['0x'], ['0x']))
+        .to.emit(actions, 'Subscribe')
+        .withArgs(user2.address, params.profileIds, anyValue, anyValue)
+      const postBalance = await coin.balanceOf(user1Subscription.recipient)
+      expect(postBalance.gt(preBalance)).to.be.true
     })
   })
 })
