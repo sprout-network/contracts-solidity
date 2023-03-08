@@ -19,11 +19,27 @@ export async function createCCProfile(
   return await profileNFT.createProfile(params, '0x00000000', '0x00000000', { value: mintFee })
 }
 
+export async function collectEssence(
+  user: SignerWithAddress,
+  ccProfileAddr: string,
+  params: DataTypes.CollectParamsStruct
+): Promise<ContractTransaction> {
+  const profileNFT = await ethers.getContractAt('IProfileNFT', ccProfileAddr, user)
+  return await profileNFT.collect(params, '0x00', '0x00')
+}
+
 export function getProfileId(event: Event): BigNumber {
   const iface = IActionsEvent__factory.createInterface()
   const decoded = iface.decodeEventLog('CreateProfile', event.data, event.topics)
   const profileId = decoded.profileId
   return profileId
+}
+
+export function getEssenceId(event: Event): BigNumber {
+  const iface = IActionsEvent__factory.createInterface()
+  const decoded = iface.decodeEventLog('RegisterEssence', event.data, event.topics)
+  const essenceId = decoded.essenceId
+  return essenceId
 }
 
 export async function setupCurrencyWhitelist(treasuryAddr: string, coinAddr: string) {

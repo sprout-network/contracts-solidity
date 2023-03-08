@@ -18,7 +18,7 @@ export const CYBERCONNECT_CONTRACT = {
   SubscribePaidMw: '0x9b5678862e143c970f4a63f57dd8a677f5942c40',
   SubscribeOnlyOnceMw: '0xc6968831ad8bd12ebb72108f6e4c51432580870d',
   SubscribeDisallowedMw: '0x3d1c0dcff5ab0a8ede767f9c094b9e12940f6428',
-  CollectPaidMw: '0xb09ae63a2fd28686a0f386d1ddfd4b53687bf298',
+  CollectPaidMw: '0xB09Ae63A2fD28686A0f386D1dDfD4b53687bf298',
   CollectDisallowedMw: '0xcc1d623be97c37b19c64adbd35390260460b92e7',
   CollectOnlySubscribedMw: '0x26a39e0ecab95b76fbbf593331e25caaa13f83c7',
   CollectMerkleDropMw: '0x0642cfcba1e391e3affc2270fd2a20e468bceeaa',

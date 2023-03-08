@@ -4,13 +4,21 @@ import { CYBERCONNECT_CONTRACT } from './constants'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs'
-import { createCCProfile, getProfileId, setupCurrencyWhitelist } from './helpers/cyberconnect'
+import {
+  collectEssence,
+  createCCProfile,
+  getEssenceId,
+  getProfileId,
+  setupCurrencyWhitelist,
+} from './helpers/cyberconnect'
 import { TransferEvent } from '../typechain-types/@openzeppelin/contracts/token/ERC721/IERC721'
 import { BigNumberish } from 'ethers'
 import { toWrap } from './helpers/nativeCoin'
 import { pack } from '@ethersproject/solidity/src.ts'
 import { generateCollectPaidMwInit } from '../helpers/mw'
 import { IActionsEvent } from '../typechain-types'
+import { PromiseOrValue } from '../typechain-types/common'
+import { approveCoin } from './helpers/erc20'
 
 describe('CyberConnect testing', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -69,6 +77,48 @@ describe('CyberConnect testing', function () {
     return { engine, actions, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 }
   }
 
+  async function setupEssenceFixture() {
+    const { engine, actions, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 } =
+      await loadFixture(setupProfileFixture)
+    const params = {
+      profileId: userProfile1.profileId,
+      name: 'firstshit',
+      symbol: 'SHIT',
+      essenceTokenURI: 'http://localhost:3000/essence.json',
+      essenceMw: collectPaidMw.address,
+      transferable: false,
+      deployAtRegister: true,
+    }
+    const collectData = {
+      totalSupply: 1000000n,
+      amount: 1000n,
+      recipient: user1.address,
+      currency: coin.address,
+      subscribeRequired: false,
+    }
+    const initData = generateCollectPaidMwInit(collectData)
+    const receipt = await profileNFT
+      .connect(user1)
+      .registerEssence(params, initData)
+      .then((tx) => tx.wait())
+    const events = receipt.events
+    if (!events) throw new Error('events is null')
+    const essenceId = getEssenceId(events[events.length - 1])
+    const userEssence1 = { ...collectData, essenceId }
+    return {
+      engine,
+      actions,
+      profileNFT,
+      collectPaidMw,
+      coin,
+      user1,
+      user2,
+      userProfile1,
+      userProfile2,
+      userEssence1,
+    }
+  }
+
   describe('profile testing', function () {
     it('Should create a profile nft successfully', async function () {
       const { profileNFT, actions, user1 } = await loadFixture(connectCCFixture)
@@ -88,9 +138,8 @@ describe('CyberConnect testing', function () {
 
   describe('essence testing', function () {
     it('Should create a essense nft successfully', async function () {
-      const { engine, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 } = await loadFixture(
-        setupProfileFixture
-      )
+      const { engine, profileNFT, actions, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 } =
+        await loadFixture(setupProfileFixture)
       const params = {
         profileId: userProfile1.profileId,
         name: 'firstshit',
@@ -108,10 +157,31 @@ describe('CyberConnect testing', function () {
         subscribeRequired: false,
       }
       const initData = generateCollectPaidMwInit(data)
-      await profileNFT
-        .connect(user1)
-        .registerEssence(params, initData)
-        .then((tx) => tx.wait())
+      await expect(profileNFT.connect(user1).registerEssence(params, initData))
+        .to.emit(actions, 'RegisterEssence')
+        .withArgs(
+          params.profileId,
+          anyValue,
+          params.name,
+          params.symbol,
+          params.essenceTokenURI,
+          params.essenceMw,
+          anyValue
+        )
+    })
+
+    it('essence Should be collected successfully', async function () {
+      const { engine, profileNFT, actions, collectPaidMw, coin, user1, user2, userProfile1, userEssence1 } =
+        await loadFixture(setupEssenceFixture)
+      const params = {
+        collector: user2.address,
+        profileId: userProfile1.profileId,
+        essenceId: userEssence1.essenceId,
+      }
+      await approveCoin(coin.address, user2, collectPaidMw.address, userEssence1.amount)
+      await expect(collectEssence(user2, profileNFT.address, params))
+        .to.emit(actions, 'CollectEssence')
+        .withArgs(params.collector, params.profileId, params.essenceId, anyValue, anyValue, anyValue)
     })
   })
 })
