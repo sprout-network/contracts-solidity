@@ -23,6 +23,7 @@ npx hardhat test
 REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat run scripts/deploy.ts
+npx hardhat newAccount #create a new account
 ```
 
 ### Running local testnode with deployed contracts
