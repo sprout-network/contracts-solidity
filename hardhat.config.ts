@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from 'hardhat/config'
 import '@nomicfoundation/hardhat-toolbox'
 import * as dotenv from 'dotenv'
+
 dotenv.config()
 
 
@@ -26,7 +27,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       allowUnlimitedContractSize: false,
       forking: {
-        url: `https://bsc-dataseed1.binance.org/`,
+        url: process.env.BNB_MAINNET_RPC_URL || 'https://bsc-dataseed1.binance.org/'
         // blockNumber: 16538651
       }
     },
@@ -35,8 +36,14 @@ const config: HardhatUserConfig = {
     },
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`
+    },
+    bnb: {
+      url: process.env.BNB_MAINNET_RPC_URL || 'https://bsc-dataseed1.binance.org/'
+    },
+    bnbt: {
+      url: process.env.BNB_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545/'
     }
   }
-}
+  }
 
-export default config
+  export default config
