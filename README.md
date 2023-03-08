@@ -1,6 +1,7 @@
 # Contract
 
 ### Contract Development
+
 ```shell
 yarn compile
 yarn test
@@ -8,10 +9,10 @@ yarn script <script-file-path>
 ```
 
 ### Lint
+
 ```shell
 yarn lint
 ```
-
 
 This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
 
@@ -27,10 +28,13 @@ npx hardhat newAccount #create a new account
 ```
 
 ### Running local testnode with deployed contracts
+
 ```shell
 yarn testnode
 ```
+
 You should see the addresses in the following example output in **color red**:
+
 ```shell
 ...
 [0] eth_chainId
@@ -42,5 +46,14 @@ You should see the addresses in the following example output in **color red**:
 ```
 
 ### Getting testing ETH
+
 1. Set the env variable `TESTING_METAMASK_ADDRESSES` value to your desired testing addresses. Separate multiple addresses with comma.
 2. Run `yarn testnode`, then 30 ETH will be sent to your testing address
+
+### deploy the contracts
+
+1. Set the env variable `DEPLOYER_PRIVATE_KEY` value to deployer address which has enough gas to deploy the contracts
+2. Run `yarn script ./scripts/deploy.ts --network <chose_chain>`, then the contracts will be deployed
+
+#### Contract Deployments
+deployments are stored in `docs/deployments` [folder](./docs/deployments)
