@@ -1,6 +1,7 @@
 // bsc mainnet (https://github.com/cyberconnecthq/cybercontracts/blob/main/docs/deploy/bnb-56/contract.md)
 export const CYBERCONNECT_CONTRACT = {
   Action: '0x8ccbe07f1e12a61e4fbb3a1895d35dce001ff73a',
+  CCAction: '0x2723522702093601e6360cae665518c4f63e9da6',
   RolesAuthority: '0x9937fb8ebe4ebc7710ffaed246584603f390be3e',
   EngineImpl: '0x1c2c8e6634fc29f38d110233b5370a1b7ebbb6e5',
   EngineProxy: '0x1ca51941a616d14c42d3e3b9e6e687d7f5054c3a',

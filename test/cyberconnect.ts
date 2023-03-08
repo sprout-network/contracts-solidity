@@ -9,6 +9,8 @@ import { TransferEvent } from '../typechain-types/@openzeppelin/contracts/token/
 import { BigNumberish } from 'ethers'
 import { toWrap } from './helpers/nativeCoin'
 import { pack } from '@ethersproject/solidity/src.ts'
+import { generateCollectPaidMwInit } from '../helpers/mw'
+import { IActionsEvent } from '../typechain-types'
 
 describe('CyberConnect testing', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -20,21 +22,24 @@ describe('CyberConnect testing', function () {
     const engine = await ethers.getContractAt('ICyberEngine', CYBERCONNECT_CONTRACT.EngineProxy)
     await engine.deployed()
 
+    const actions = await ethers.getContractAt('IActionsEvent', CYBERCONNECT_CONTRACT.CCAction)
+    await actions.deployed()
+
     const profileNFT = await ethers.getContractAt('IProfileNFT', CYBERCONNECT_CONTRACT.CCProfile)
     await profileNFT.deployed()
 
     const collectPaidMw = await ethers.getContractAt('IEssenceMiddleware', CYBERCONNECT_CONTRACT.CollectPaidMw)
-    await engine.deployed()
+    await collectPaidMw.deployed()
     const coinAddr = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' //WBNB
     const coin = await ethers.getContractAt('IERC20', coinAddr)
     await toWrap(coinAddr, user1, ethers.utils.parseEther('10'))
     await toWrap(coinAddr, user2, ethers.utils.parseEther('10'))
     await setupCurrencyWhitelist(CYBERCONNECT_CONTRACT.CyberConnectTreasury, coin.address)
-    return { engine, profileNFT, collectPaidMw, coin, user1, user2 }
+    return { engine, actions, profileNFT, collectPaidMw, coin, user1, user2 }
   }
 
   async function setupProfileFixture() {
-    const { engine, profileNFT, collectPaidMw, coin, user1, user2 } = await loadFixture(connectCCFixture)
+    const { engine, actions, profileNFT, collectPaidMw, coin, user1, user2 } = await loadFixture(connectCCFixture)
     let userParam1 = {
       to: user1.address,
       handle: 'holeshit1',
@@ -53,20 +58,20 @@ describe('CyberConnect testing', function () {
     if (!receipt.events) {
       throw new Error('events is null')
     }
-    let profileId = getProfileId(<TransferEvent>receipt.events[1])
+    let profileId = getProfileId(receipt.events[2])
     const userProfile1 = { ...userParam1, profileId }
     receipt = await createCCProfile(user2, profileNFT.address, userParam2).then((tx) => tx.wait())
     if (!receipt.events) {
       throw new Error('events is null')
     }
-    profileId = getProfileId(<TransferEvent>receipt.events[1])
+    profileId = getProfileId(receipt.events[2])
     const userProfile2 = { ...userParam2, profileId }
-    return { engine, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 }
+    return { engine, actions, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 }
   }
 
   describe('profile testing', function () {
     it('Should create a profile nft successfully', async function () {
-      const { profileNFT, user1 } = await loadFixture(connectCCFixture)
+      const { profileNFT, actions, user1 } = await loadFixture(connectCCFixture)
       const params = {
         to: user1.address,
         handle: 'holeshit',
@@ -76,13 +81,13 @@ describe('CyberConnect testing', function () {
       }
       const nft = await ethers.getContractAt('IERC721', profileNFT.address)
       await expect(createCCProfile(user1, profileNFT.address, params))
-        .to.emit(nft, 'Transfer')
-        .withArgs('0x0000000000000000000000000000000000000000', user1.address, anyValue)
+        .to.emit(actions, 'CreateProfile')
+        .withArgs(params.to, anyValue, params.handle, params.avatar, params.metadata)
     })
   })
 
   describe('essence testing', function () {
-    it('Should be the right name and symbol', async function () {
+    it('Should create a essense nft successfully', async function () {
       const { engine, profileNFT, collectPaidMw, coin, user1, user2, userProfile1, userProfile2 } = await loadFixture(
         setupProfileFixture
       )
@@ -95,12 +100,18 @@ describe('CyberConnect testing', function () {
         transferable: false,
         deployAtRegister: true,
       }
-      const abi = ethers.utils.defaultAbiCoder
-      const initData = abi.encode(
-        ['uint256', 'uint256', 'address', 'address', 'bool'],
-        [1000000n, 1000n, user1.address, coin.address, true]
-      )
-      await profileNFT.connect(user1).registerEssence(params, initData)
+      const data = {
+        totalSupply: 1000000n,
+        amount: 1000n,
+        recipient: user1.address,
+        currency: coin.address,
+        subscribeRequired: false,
+      }
+      const initData = generateCollectPaidMwInit(data)
+      await profileNFT
+        .connect(user1)
+        .registerEssence(params, initData)
+        .then((tx) => tx.wait())
     })
   })
 })

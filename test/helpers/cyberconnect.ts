@@ -7,7 +7,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { DataTypes } from '../../typechain-types/contracts/cyberconnect/interfaces/IProfileNFT'
 import { BigNumber, ContractTransaction } from 'ethers'
 import { TransferEvent } from '../../typechain-types/@openzeppelin/contracts/token/ERC721/IERC721'
-import { IERC721__factory } from '../../typechain-types'
+import { IActionsEvent__factory, IERC721__factory } from '../../typechain-types'
 
 export async function createCCProfile(
   user: SignerWithAddress,
@@ -20,9 +20,9 @@ export async function createCCProfile(
 }
 
 export function getProfileId(event: Event): BigNumber {
-  const iface = IERC721__factory.createInterface()
-  const decoded = iface.decodeEventLog('Transfer', event.data, event.topics)
-  const profileId = decoded.tokenId
+  const iface = IActionsEvent__factory.createInterface()
+  const decoded = iface.decodeEventLog('CreateProfile', event.data, event.topics)
+  const profileId = decoded.profileId
   return profileId
 }
 
