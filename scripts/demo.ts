@@ -299,7 +299,7 @@ import { toWrap } from './helpers/nativeCoin'
     await printHelper.printLoading('minting');
     const {essenceId, essenceNft} = await getEssenceIdFromTx(tx, actions);
     printHelper.printNewLine(`essenceNft has been minted, essenceId = ${essenceId} essenceNft = ${essenceNft}`);
-    // await printHelper.pause();
+    await printHelper.pause();
     printHelper.clearConsole();
     printHelper.printBalance();  
 
@@ -371,8 +371,10 @@ import { toWrap } from './helpers/nativeCoin'
     const debbyCollectTransaction = await debbyCollectPromise;
     await printHelper.updateBalance();
     printHelper.printNewLine(`collect successfully`);
+    printHelper.printNewLine();
     await printHelper.pause();
-
+    printHelper.resetCache();
+    
     // ====================== deposit from sprout treasury ======================
 
     const subscribeFee = await getSubscribePaidAmountFromTx(debbySubscribeTransaction, subscribePaidMw, sproutTreasury.address, profileId);
