@@ -50,10 +50,16 @@ You should see the addresses in the following example output in **color red**:
 1. Set the env variable `TESTING_METAMASK_ADDRESSES` value to your desired testing addresses. Separate multiple addresses with comma.
 2. Run `yarn testnode`, then 30 ETH will be sent to your testing address
 
-### deploy the contracts
+### Deploy the Contracts
 
 1. Set the env variable `DEPLOYER_PRIVATE_KEY` value to deployer address which has enough gas to deploy the contracts
 2. Run `yarn script ./scripts/deploy.ts --network <chose_chain>`, then the contracts will be deployed
 
 #### Contract Deployments
 deployments are stored in `docs/deployments` [folder](./docs/deployments)
+
+#### Verify the Contracts (Detail in [here](https://hardhat.org/plugins/nomiclabs-hardhat-etherscan.html))
+```shell
+npx hardhat verify <contract_address> --network <chose_chain> <constructor_args> #or
+npx hardhat verify --constructor-args <arguments.js> <contract_address> --network <chose_chain>
+```
