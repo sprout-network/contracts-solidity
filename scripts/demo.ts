@@ -3,6 +3,7 @@ import { ethers } from 'hardhat'
 
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumberish, Contract, ContractTransaction } from 'ethers'
+import * as readline from 'readline'
 import { IERC20 } from '../typechain-types'
 import { TransferEvent } from '../typechain-types/@openzeppelin/contracts/token/ERC721/IERC721'
 import { ActionsAbi } from './abi/Actions'
@@ -10,12 +11,14 @@ import { CYBERCONNECT_CONTRACT } from './constants'
 import { createCCProfile, getProfileId, MwType, setupCurrencyWhitelist, setupMwWhitelist } from './helpers/cyberconnect'
 import { approveCoin } from './helpers/erc20'
 import { toWrap } from './helpers/nativeCoin'
+const rl = readline.createInterface({
+    input: process.stdin, 
+    output: process.stdout,
+})
 
-function printSeparator(){
-    console.log('========================================');
-}
 
-async function connectCCFixture() {
+
+  async function connectCCFixture() {
     const [alice, bob, carl, debby] = await ethers.getSigners()
     const coinAddr = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; //WBNB
     const coin = await ethers.getContractAt('IERC20', coinAddr);
@@ -66,7 +69,6 @@ async function connectCCFixture() {
     return { engine, profileNFT, collectPaidMw, subscribePaidMw, coin, alice, bob, carl, debby, sproutTreasury, cyberconnectTreasury, actions};
   }
 
-
   async function getEssenceIdFromTx(tx: ContractTransaction, actions:Contract){
     const events = (await tx.wait()).events;
     const registerEssenceEvent = actions.filters.DeployEssenceNFT()
@@ -81,23 +83,104 @@ async function connectCCFixture() {
     return {essenceId, essenceNft};
   }
 
-  async function printBalance(users: { userName: string, address: string }[], coin: IERC20){
-    const title = '################ balance ################';
-    console.log(title);
-    const longestName = users.map( user => user.userName ).reduce( (prev, curr) => prev.length > curr.length ? prev: curr );
-
-    for (const user of users) {
-        const balance = await coin.balanceOf(user.address);
-        let display = `# ${user.userName} ${' '.repeat(longestName.length - user.userName.length)}: ${ethers.utils.formatEther(balance)} wbnb`;
-        display = display + ' '.repeat(title.length - display.length - 1) + '#';
-        console.log(display);
-    }
-    console.log('#'.repeat(title.length));
-  }
 
   const abi = ethers.utils.defaultAbiCoder;
   const emptyData = '0x';
 
+  class PrintHelper{
+
+    private balanceStr: string;
+    private cacheStr: string;
+    private cached: boolean;
+    constructor(private readonly users: { userName: string, address: string }[], private readonly coin: IERC20) {
+        this.balanceStr = '';
+        this.cacheStr = '';
+        this.cached = false ;
+    }
+    
+    printSeparator(){
+        console.log('========================================'); 
+    }
+
+    async pause(){
+        await new Promise(resolve => rl.question('press enter to continue', resolve)) ;
+    }
+
+    async printLoading(value:string){
+        this.printSameLine(`${value} .`)
+        await new Promise( resolve => setTimeout(resolve, 1000));
+        this.printSameLine(`${value} ..`)
+        await new Promise( resolve => setTimeout(resolve, 1000));
+        this.printSameLine(`${value} ...`, this.cached);
+        this.printNewLine();
+    }
+
+    async updateBalance(printCache = true){
+        await this.refreshBalance();
+        this.clearConsole();
+        this.printBalance();
+        if(printCache){
+            this.printCache();
+        }  
+
+    }
+
+    resetCache(){
+        this.cacheStr = '';
+    }
+
+    printCache(){
+        process.stdout.write(this.cacheStr);
+    }
+
+    printBalance(){
+        console.log(this.balanceStr);
+    }
+
+    printSameLine(value: string, cached = false){
+        process.stdout.write(`\r${value}`);
+        if(cached){
+            this.cacheStr = this.cacheStr.concat(value);
+        }
+    }
+
+    printNewLine(value = ''){
+        console.log(value);
+        if(this.cached){
+            this.cacheStr = this.cacheStr.concat(value + '\n');
+        }
+    }
+
+    clearConsole(){
+        console.clear();
+    }
+
+    async refreshBalance(){
+        this.balanceStr = await this.getBalance();
+    }
+
+    setCached(cached: boolean){
+        this.cached = cached;
+    }
+
+    private async getBalance(){
+        let result = '';
+        const title = '################ balance ################';
+        result = result.concat(title + '\n');
+        const longestName = this.users.map( user => user.userName ).reduce( (prev, curr) => prev.length > curr.length ? prev: curr );
+    
+        for (const user of this.users) {
+            const balance = await this.coin.balanceOf(user.address);
+            let display = `# ${user.userName} ${' '.repeat(longestName.length - user.userName.length)}: ${ethers.utils.formatEther(balance)} wbnb`;
+            display = display + ' '.repeat(title.length - display.length - 1) + '#';
+            result = result.concat(display+ '\n');
+        }
+        result = result.concat('#'.repeat(title.length)+ '\n');
+        
+        return result;
+      }
+    
+  }
 
   async function main(){
 
@@ -110,9 +193,12 @@ async function connectCCFixture() {
     const userSproutTreasury = {userName: 'sproutTreasury', address: sproutTreasury.address}
     const users = [userAlice, userBob, userCarl, userDebby, userSproutTreasury];
 
-    printSeparator();
-    console.log(`alice try to mint profileNFT`);
-
+    const printHelper = new PrintHelper(users, coin);
+    printHelper.clearConsole();
+    await printHelper.refreshBalance();
+    printHelper.printBalance();
+    //   ====================== mint profile  ======================
+    printHelper.printNewLine(`alice try to mint profileNFT`);
     let aliceParam = {
         to: alice.address,
         handle: 'alice',
@@ -121,30 +207,40 @@ async function connectCCFixture() {
         operator: '0x0000000000000000000000000000000000000000',
       };
 
-      let receipt = await createCCProfile(alice, profileNFT.address, aliceParam).then((tx) => tx.wait());
-      if (!receipt.events) {
-        throw new Error('events is null');
-      }
-      let profileId = getProfileId(<TransferEvent>receipt.events[1]);
-      const aliceProfile = { ...aliceParam, profileId };
+      
+    let receiptPromise = createCCProfile(alice, profileNFT.address, aliceParam).then(async (tx) =>  tx.wait())
+    await printHelper.printLoading('minting');
+    let receipt = await receiptPromise;
+    if (!receipt.events) {
+    throw new Error('events is null')
+    }
+    let profileId = getProfileId(<TransferEvent>receipt.events[1]);
+    const aliceProfile = { ...aliceParam, profileId };
 
-      console.log(`profileNFT has been minted, profileId = ${profileId._hex}`);
-      printSeparator();
-      const fee = '1';
-      const feeEth = ethers.utils.parseEther(fee);
-      const subscribeMwData = abi.encode(
-        ['uint256', 'address', 'address', 'bool', 'address'],
-        [feeEth, alice.address, coin.address, false, '0x0000000000000000000000000000000000000000' ]
-      );
+    printHelper.printNewLine(`profileNFT has been minted, profileId = ${profileId._hex}`);
+    printHelper.printNewLine();
 
-      console.log(`alice try to set up subscribe data with paid middleware , subscribe fee = ${fee} wbnb and recipient = ${alice.address}`);
-      await profileNFT.setSubscribeData(aliceProfile.profileId, '', subscribePaidMw.address, subscribeMwData)
-      console.log(`subscribe data has been set up`);
+    //   ====================== set subscription data  ======================
 
-      printSeparator();
-      console.log(`alice try to mint essence fnt with paid middleware , collect fee = ${fee} wbnb and recipient = ${alice.address}`);
-      const totalSupply = 100000n
-      const params = {
+    const fee = '1';
+    const feeEth = ethers.utils.parseEther(fee);
+    const subscribeMwData = abi.encode(
+    ['uint256', 'address', 'address', 'bool', 'address'],
+    [feeEth, alice.address, coin.address, false, '0x0000000000000000000000000000000000000000' ]
+    );
+
+    printHelper.printNewLine(`alice try to set up subscribe data with paid middleware , subscribe fee = ${fee} wbnb and recipient = ${alice.address}`);
+    let setPromise = profileNFT.setSubscribeData(aliceProfile.profileId, '', subscribePaidMw.address, subscribeMwData)
+    await printHelper.printLoading('setting');
+    await setPromise; 
+    printHelper.printNewLine(`set successfully`);
+    printHelper.printNewLine();
+
+    //   ====================== mint essence  ======================
+    
+    printHelper.printNewLine(`alice try to mint essence fnt with paid middleware , collect fee = ${fee} wbnb and recipient = ${alice.address}`);
+    const totalSupply = 100000n
+    const params = {
         profileId: aliceProfile.profileId,
         name: 'essence1',
         symbol: 'E1',
@@ -152,53 +248,82 @@ async function connectCCFixture() {
         essenceMw: collectPaidMw.address,
         transferable: false,
         deployAtRegister: true,
-      }
-      const initData = abi.encode(
+    }
+    const initData = abi.encode(
         ['uint256', 'uint256', 'address', 'address', 'bool'],
         [totalSupply, feeEth, alice.address, coin.address, false]
-      )
-      const tx = await profileNFT.connect(alice).registerEssence(params, initData);
-      const {essenceId, essenceNft} = await getEssenceIdFromTx(tx, actions);
-      console.log(`essenceNft has been minted, essenceId = ${essenceId} essenceNft = ${essenceNft}`);
-      
-      printSeparator();
+    )
+    const tx = await profileNFT.connect(alice).registerEssence(params, initData);
+    await printHelper.printLoading('minting');
+    const {essenceId, essenceNft} = await getEssenceIdFromTx(tx, actions);
+    printHelper.printNewLine(`essenceNft has been minted, essenceId = ${essenceId} essenceNft = ${essenceNft}`);
+    await printHelper.pause();
+    printHelper.clearConsole();
+    printHelper.printBalance();  
 
-      await printBalance(users, coin);
-      console.log(`bob try to subscribe alice`);
-      await profileNFT.connect(bob).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
-      console.log(`subscribe success`);
-      await printBalance(users, coin);
-      console.log(`bob try to collect essence of alice`);
-      const collectParam = {
+    //  ====================== normal subscribe  ======================
+
+    printHelper.setCached(true);
+    printHelper.printNewLine(`bob try to subscribe alice`);
+    const bobSubscribePromise = profileNFT.connect(bob).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
+    await printHelper.printLoading('subscribing');
+    await printHelper.updateBalance();
+    await bobSubscribePromise ;
+    printHelper.printNewLine(`subscribe successfully`);
+    printHelper.printNewLine();
+    printHelper.printNewLine(`bob try to collect essence of alice`);
+
+    //  ====================== normal collect  ======================
+
+    const collectParam = {
         collector: bob.address,
         profileId: aliceProfile.profileId,
         essenceId: essenceId
-      }
-      await profileNFT.connect(bob).collect(collectParam, emptyData, emptyData)
-      console.log(`collect success`);
-      await printBalance(users, coin);
-      printSeparator();      
+    }
+    await printHelper.printLoading('collecting');
+    const bobCollectPromise = profileNFT.connect(bob).collect(collectParam, emptyData, emptyData)
+    await printHelper.updateBalance();
+    await bobCollectPromise;
+    printHelper.printNewLine(`collect successfully`);
+    printHelper.resetCache();
+    await printHelper.pause();
+    await printHelper.updateBalance();
 
-      console.log(`bond of alice has been activate, redirect subscribe fee to sprout treasury `);
-      await subscribePaidMw.setFeeRedirect(aliceProfile.profileId, true);
-      await collectPaidMw.setFeeRedirect(aliceProfile.profileId, true)
-      printSeparator();
-      console.log(`carl try to subscribe alice`);
-      await printBalance(users, coin);
-      await profileNFT.connect(carl).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
-      console.log(`subscribe success`);
-      await printBalance(users, coin);
+    //  ====================== redirect fee  ======================
 
-      console.log(`debby try to collect essence of alice`);
-      const collectParam2 = {
+    printHelper.printNewLine(`bond of alice has been activate, redirect subscribe fee to sprout treasury `);
+    const subscribeFeeRedirectPromise = subscribePaidMw.setFeeRedirect(aliceProfile.profileId, true);
+    const collectFeeRedirectPromise = collectPaidMw.setFeeRedirect(aliceProfile.profileId, true)
+    await printHelper.printLoading('setting');
+    await subscribeFeeRedirectPromise;
+    await collectFeeRedirectPromise; 
+    printHelper.printNewLine(`set successfully`);
+    printHelper.printNewLine();
+
+    //  ====================== redirect subscribe ======================
+
+    printHelper.printNewLine(`carl try to subscribe alice`);
+    const carlSubscribePromise =  profileNFT.connect(carl).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
+    await printHelper.printLoading('subscribing');
+    await carlSubscribePromise;
+    await printHelper.updateBalance();
+    printHelper.printNewLine(`subscribe successfully`);
+    printHelper.printNewLine();
+
+    //  ====================== redirect collect ======================
+
+    printHelper.printNewLine(`debby try to collect essence of alice`);
+    const collectParam2 = {
         collector: debby.address,
         profileId: aliceProfile.profileId,
         essenceId: essenceId
-      }
-      await profileNFT.connect(debby).collect(collectParam2, emptyData, emptyData)
-      console.log(`collect success`);
-      await printBalance(users, coin);
-      printSeparator();      
+    }
+    const debbyCollectPromise = profileNFT.connect(debby).collect(collectParam2, emptyData, emptyData)
+    await printHelper.printLoading('collecting');
+    await debbyCollectPromise;
+    await printHelper.updateBalance();
+    printHelper.printNewLine(`collect successfully`);
+
 
   }
 
