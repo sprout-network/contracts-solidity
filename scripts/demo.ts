@@ -2,24 +2,25 @@
 import { ethers } from 'hardhat'
 
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { BigNumberish, Contract, ContractTransaction } from 'ethers'
+import { BigNumber, BigNumberish, Contract, ContractTransaction } from 'ethers'
 import * as readline from 'readline'
-import { IERC20 } from '../typechain-types'
+import { CollectPaidMw, IERC20, SubscribePaidMw } from '../typechain-types'
 import { TransferEvent } from '../typechain-types/@openzeppelin/contracts/token/ERC721/IERC721'
 import { ActionsAbi } from './abi/Actions'
 import { CYBERCONNECT_CONTRACT } from './constants'
 import { createCCProfile, getProfileId, MwType, setupCurrencyWhitelist, setupMwWhitelist } from './helpers/cyberconnect'
 import { approveCoin } from './helpers/erc20'
 import { toWrap } from './helpers/nativeCoin'
-const rl = readline.createInterface({
-    input: process.stdin, 
-    output: process.stdout,
-})
+  const rl = readline.createInterface({
+        input: process.stdin, 
+        output: process.stdout,
+  })
 
-
+  const abi = ethers.utils.defaultAbiCoder; 
+  const emptyData = '0x';
 
   async function connectCCFixture() {
-    const [alice, bob, carl, debby] = await ethers.getSigners()
+    const [owner, alice, bob, carl, debby] = await ethers.getSigners()
     const coinAddr = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; //WBNB
     const coin = await ethers.getContractAt('IERC20', coinAddr);
 
@@ -66,7 +67,7 @@ const rl = readline.createInterface({
     await approveCoin(coin.address, carl, subscribePaidMw.address, ethers.utils.parseEther('10'));
     await approveCoin(coin.address, debby, subscribePaidMw.address, ethers.utils.parseEther('10'));
 
-    return { engine, profileNFT, collectPaidMw, subscribePaidMw, coin, alice, bob, carl, debby, sproutTreasury, cyberconnectTreasury, actions};
+    return { engine, profileNFT, collectPaidMw, subscribePaidMw, coin, alice, bob, carl, debby, sproutTreasury, cyberconnectTreasury, actions, owner};
   }
 
   async function getEssenceIdFromTx(tx: ContractTransaction, actions:Contract){
@@ -83,16 +84,47 @@ const rl = readline.createInterface({
     return {essenceId, essenceNft};
   }
 
+  async function getCollectPaidAmountFromTx(tx: ContractTransaction, collectPaidMw: CollectPaidMw, sproutTreasuryAddress: string, profileId: BigNumberish, essenceId: BigNumberish){
+    const events = (await tx.wait()).events;
+    const collectPaidEvent = collectPaidMw.filters.CollectPaid(sproutTreasuryAddress, profileId, essenceId);
+    let paidAmount: BigNumber = ethers.utils.parseEther('0');
+    for (const event of events!!) {
+        if(event.topics!![0] === collectPaidEvent.topics!![0] 
+            && event.topics!![1].toLowerCase() == collectPaidEvent.topics!![1]
+            && event.topics!![2] == collectPaidEvent.topics!![2]
+            && event.topics!![3] == collectPaidEvent.topics!![3]
+        ){
+            const eventData = abi.decode( ['uint256', 'address', 'address'], event.data);
+            paidAmount = eventData[0];
+            break;
+        }
+    }
+    return paidAmount;
+  }
 
-  const abi = ethers.utils.defaultAbiCoder;
-  const emptyData = '0x';
+  async function getSubscribePaidAmountFromTx(tx: ContractTransaction, subscribePaidMw: SubscribePaidMw, sproutTreasuryAddress: string, profileId: BigNumber){
+    const events = (await tx.wait()).events;
+    const collectPaidEvent = subscribePaidMw.filters.SubscribePaid(sproutTreasuryAddress, profileId);
+    let paidAmount: BigNumber = ethers.utils.parseEther('0');
+    for (const event of events!!) {
+        if(event.topics!![0] === collectPaidEvent.topics!![0] 
+            && event.topics!![1].toLowerCase() == collectPaidEvent.topics!![1] 
+            && event.topics!![2] == collectPaidEvent.topics!![2]
+        ){
+            const eventData = abi.decode( ['uint256', 'address', 'address'], event.data);
+            paidAmount = eventData[0];
+            break;
+        }
+    }
+    return paidAmount;
+  }
 
   class PrintHelper{
 
     private balanceStr: string;
     private cacheStr: string;
     private cached: boolean;
-    constructor(private readonly users: { userName: string, address: string }[], private readonly coin: IERC20) {
+    constructor(private readonly users: { userName: string, address: string, oriBalance: number }[], private readonly coin: IERC20) {
         this.balanceStr = '';
         this.cacheStr = '';
         this.cached = false ;
@@ -165,13 +197,16 @@ const rl = readline.createInterface({
 
     private async getBalance(){
         let result = '';
-        const title = '################ balance ################';
+        const title = '#################################### balance ####################################';
         result = result.concat(title + '\n');
         const longestName = this.users.map( user => user.userName ).reduce( (prev, curr) => prev.length > curr.length ? prev: curr );
     
         for (const user of this.users) {
             const balance = await this.coin.balanceOf(user.address);
-            let display = `# ${user.userName} ${' '.repeat(longestName.length - user.userName.length)}: ${ethers.utils.formatEther(balance)} wbnb`;
+            if(user.oriBalance == -1){
+                user.oriBalance = Number.parseFloat(ethers.utils.formatEther(balance)) ;
+            }
+            let display = `# ${user.userName} ${' '.repeat(longestName.length - user.userName.length)} original balance: ${user.oriBalance.toFixed(1)} current balance: ${ethers.utils.formatEther(balance)} wbnb`;
             display = display + ' '.repeat(title.length - display.length - 1) + '#';
             result = result.concat(display+ '\n');
         }
@@ -182,15 +217,22 @@ const rl = readline.createInterface({
     
   }
 
+  function generateWithdrawHash(owner: string, coin: string, depositAmount: BigNumberish, nonce: BigNumberish) {
+    const hashToSign = ethers.utils.keccak256(
+      ethers.utils.solidityPack(['address', 'address', 'uint256', 'uint256'], [owner, coin, depositAmount, nonce])
+    )
+    return ethers.utils.arrayify(hashToSign)
+  }
+
   async function main(){
 
-    const { engine, profileNFT, collectPaidMw, subscribePaidMw, coin, alice, bob, carl, debby, sproutTreasury, cyberconnectTreasury, actions} = await loadFixture(connectCCFixture);
+    const { profileNFT, collectPaidMw, subscribePaidMw, coin, alice, bob, carl, debby, sproutTreasury, actions, owner} = await loadFixture(connectCCFixture);
 
-    const userAlice = {userName: 'alice', address:alice.address};
-    const userBob = {userName: 'bob', address:bob.address};
-    const userCarl = {userName: 'carl', address:carl.address};
-    const userDebby = {userName: 'debby', address:debby.address};
-    const userSproutTreasury = {userName: 'sproutTreasury', address: sproutTreasury.address}
+    const userAlice = {userName: 'alice', address:alice.address, oriBalance: -1};
+    const userBob = {userName: 'bob', address:bob.address, oriBalance: -1};
+    const userCarl = {userName: 'carl', address:carl.address, oriBalance: -1};
+    const userDebby = {userName: 'debby', address:debby.address, oriBalance: -1};
+    const userSproutTreasury = {userName: 'sproutTreasury', address: sproutTreasury.address, oriBalance: -1}
     const users = [userAlice, userBob, userCarl, userDebby, userSproutTreasury];
 
     const printHelper = new PrintHelper(users, coin);
@@ -230,7 +272,7 @@ const rl = readline.createInterface({
     );
 
     printHelper.printNewLine(`alice try to set up subscribe data with paid middleware , subscribe fee = ${fee} wbnb and recipient = ${alice.address}`);
-    let setPromise = profileNFT.setSubscribeData(aliceProfile.profileId, '', subscribePaidMw.address, subscribeMwData)
+    let setPromise = profileNFT.connect(alice).setSubscribeData(aliceProfile.profileId, '', subscribePaidMw.address, subscribeMwData)
     await printHelper.printLoading('setting');
     await setPromise; 
     printHelper.printNewLine(`set successfully`);
@@ -238,7 +280,7 @@ const rl = readline.createInterface({
 
     //   ====================== mint essence  ======================
     
-    printHelper.printNewLine(`alice try to mint essence fnt with paid middleware , collect fee = ${fee} wbnb and recipient = ${alice.address}`);
+    printHelper.printNewLine(`alice try to mint essence nft with paid middleware , collect fee = ${fee} wbnb and recipient = ${alice.address}`);
     const totalSupply = 100000n
     const params = {
         profileId: aliceProfile.profileId,
@@ -257,7 +299,7 @@ const rl = readline.createInterface({
     await printHelper.printLoading('minting');
     const {essenceId, essenceNft} = await getEssenceIdFromTx(tx, actions);
     printHelper.printNewLine(`essenceNft has been minted, essenceId = ${essenceId} essenceNft = ${essenceNft}`);
-    await printHelper.pause();
+    // await printHelper.pause();
     printHelper.clearConsole();
     printHelper.printBalance();  
 
@@ -291,7 +333,13 @@ const rl = readline.createInterface({
 
     //  ====================== redirect fee  ======================
 
-    printHelper.printNewLine(`bond of alice has been activate, redirect subscribe fee to sprout treasury `);
+    printHelper.printNewLine(`alice borrow 5 wbnb from carl through sprout`);
+    const borrowPromise = coin.connect(carl).transfer(alice.address, ethers.utils.parseEther('5'));
+    await printHelper.printLoading('borrowing');
+    await borrowPromise;
+    await printHelper.updateBalance();
+
+    printHelper.printNewLine(`carl activate bond, redirect subscribe fee to sprout treasury `);
     const subscribeFeeRedirectPromise = subscribePaidMw.setFeeRedirect(aliceProfile.profileId, true);
     const collectFeeRedirectPromise = collectPaidMw.setFeeRedirect(aliceProfile.profileId, true)
     await printHelper.printLoading('setting');
@@ -302,10 +350,10 @@ const rl = readline.createInterface({
 
     //  ====================== redirect subscribe ======================
 
-    printHelper.printNewLine(`carl try to subscribe alice`);
-    const carlSubscribePromise =  profileNFT.connect(carl).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
+    printHelper.printNewLine(`debby try to subscribe alice`);
+    const debbySubscribePromise =  profileNFT.connect(debby).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
     await printHelper.printLoading('subscribing');
-    await carlSubscribePromise;
+    const debbySubscribeTransaction = await debbySubscribePromise;
     await printHelper.updateBalance();
     printHelper.printNewLine(`subscribe successfully`);
     printHelper.printNewLine();
@@ -320,11 +368,27 @@ const rl = readline.createInterface({
     }
     const debbyCollectPromise = profileNFT.connect(debby).collect(collectParam2, emptyData, emptyData)
     await printHelper.printLoading('collecting');
-    await debbyCollectPromise;
+    const debbyCollectTransaction = await debbyCollectPromise;
     await printHelper.updateBalance();
     printHelper.printNewLine(`collect successfully`);
+    await printHelper.pause();
 
+    // ====================== deposit from sprout treasury ======================
 
+    const subscribeFee = await getSubscribePaidAmountFromTx(debbySubscribeTransaction, subscribePaidMw, sproutTreasury.address, profileId);
+    const collectFee = await getCollectPaidAmountFromTx(debbyCollectTransaction, collectPaidMw, sproutTreasury.address, profileId, essenceId);
+    const depositAmount = subscribeFee.add(collectFee);
+    const nonce = (new Date()).getTime()
+    
+    const withdrawHash = generateWithdrawHash(carl.address, coin.address, depositAmount, nonce);
+    const depositProof = await owner.signMessage(withdrawHash);
+    printHelper.printNewLine(`carl try to withdraw from sprout treasury`);
+    const withdrawPromise = sproutTreasury.connect(carl).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof);
+    await printHelper.printLoading('withdrawing');
+    await withdrawPromise ;
+    await printHelper.updateBalance();
+    printHelper.printNewLine(`withdraw successfully`);
+    await printHelper.pause();
   }
 
   main()

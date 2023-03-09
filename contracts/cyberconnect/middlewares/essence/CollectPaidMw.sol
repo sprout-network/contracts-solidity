@@ -39,6 +39,15 @@ contract CollectPaidMw is IEssenceMiddleware, FeeMw {
         bool subscribeRequired
     );
 
+    event CollectPaid(
+        address indexed recipient,
+        uint256 indexed profileId,
+        uint256 indexed essenceId,
+        uint256 amount,
+        address currency,
+        address collector 
+    );
+
     /*//////////////////////////////////////////////////////////////
                                STATES
     //////////////////////////////////////////////////////////////*/
@@ -142,6 +151,8 @@ contract CollectPaidMw is IEssenceMiddleware, FeeMw {
             recipient,
             actualPaid
         );
+
+        emit CollectPaid(recipient, profileId, essenceId, actualPaid, currency, collector);
 
         if (treasuryCollected > 0) {
             IERC20(currency).safeTransferFrom(collector, _treasuryAddress(), treasuryCollected);

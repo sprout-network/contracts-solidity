@@ -36,6 +36,15 @@ contract SubscribePaidMw is ISubscribeMiddleware, FeeMw {
         address nftAddress
     );
 
+    event SubscribePaid(
+        address indexed recipient,
+        uint256 indexed profileId,
+        uint256 amount,
+        address currency,
+        address subscriber 
+    );
+
+
     /*//////////////////////////////////////////////////////////////
                                STATES
     //////////////////////////////////////////////////////////////*/
@@ -110,6 +119,8 @@ contract SubscribePaidMw is ISubscribeMiddleware, FeeMw {
         }
 
         IERC20(currency).safeTransferFrom(subscriber, recipient, actualPaid);
+
+        emit SubscribePaid(recipient, profileId, actualPaid, currency, subscriber);
 
         if (treasuryCollected > 0) {
             IERC20(currency).safeTransferFrom(subscriber, _treasuryAddress(), treasuryCollected);
