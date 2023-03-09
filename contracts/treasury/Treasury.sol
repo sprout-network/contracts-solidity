@@ -42,7 +42,7 @@ contract Treasury is TreasuryAdmin {
         address _nftAddress,
         uint256 _nftId,
         address _coin
-    ) external onlyOwner validCoin(_coin) returns (uint256 _poolId) {
+    ) external validCoin(_coin) returns (uint256 _poolId) {
         _poolId = totalNumPool;
         PoolInfo memory _info = PoolInfo({nft: _nftAddress, nftId: _nftId, coin: _coin, balances: 0});
         getPoolId[_nftAddress][_nftId] = _poolId;
