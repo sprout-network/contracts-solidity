@@ -240,7 +240,7 @@ import { toWrap } from './helpers/nativeCoin'
     await printHelper.refreshBalance();
     printHelper.printBalance();
     //   ====================== mint profile  ======================
-    printHelper.printNewLine(`alice try to mint profileNFT`);
+    printHelper.printNewLine(`Alice mints her ccProfile NFT`);
     let aliceParam = {
         to: alice.address,
         handle: 'alice',
@@ -259,7 +259,7 @@ import { toWrap } from './helpers/nativeCoin'
     let profileId = getProfileId(<TransferEvent>receipt.events[1]);
     const aliceProfile = { ...aliceParam, profileId };
 
-    printHelper.printNewLine(`profileNFT has been minted, profileId = ${profileId._hex}`);
+    printHelper.printNewLine(`ccProfile NFT has been minted, profileId = ${profileId._hex}`);
     printHelper.printNewLine();
 
     //   ====================== set subscription data  ======================
@@ -271,7 +271,7 @@ import { toWrap } from './helpers/nativeCoin'
     [feeEth, alice.address, coin.address, false, '0x0000000000000000000000000000000000000000' ]
     );
 
-    printHelper.printNewLine(`alice try to set up subscribe data with paid middleware , subscribe fee = ${fee} wbnb and recipient = ${alice.address}`);
+    printHelper.printNewLine(`Alice setups subscription data with paid middleware, subscription fee = ${fee} wbnb and recipient = ${alice.address}`);
     let setPromise = profileNFT.connect(alice).setSubscribeData(aliceProfile.profileId, '', subscribePaidMw.address, subscribeMwData)
     await printHelper.printLoading('setting');
     await setPromise; 
@@ -280,7 +280,7 @@ import { toWrap } from './helpers/nativeCoin'
 
     //   ====================== mint essence  ======================
     
-    printHelper.printNewLine(`alice try to mint essence nft with paid middleware , collect fee = ${fee} wbnb and recipient = ${alice.address}`);
+    printHelper.printNewLine(`Alice mints EssenceNFT with paid middleware, collection fee = ${fee} wbnb and recipient = ${alice.address}`);
     const totalSupply = 100000n
     const params = {
         profileId: aliceProfile.profileId,
@@ -305,7 +305,7 @@ import { toWrap } from './helpers/nativeCoin'
     //  ====================== normal subscribe  ======================
 
     printHelper.setCached(true);
-    printHelper.printNewLine(`bob try to subscribe alice`);
+    printHelper.printNewLine(`Bob subscribes to Alice`);
     const bobSubscribePromise = profileNFT.connect(bob).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
     await printHelper.printLoading('subscribing');
     await bobSubscribePromise ;
@@ -315,7 +315,7 @@ import { toWrap } from './helpers/nativeCoin'
     
     //  ====================== normal collect  ======================
     
-    printHelper.printNewLine(`bob try to collect essence of alice`);
+    printHelper.printNewLine(`Bob collects EssenceNFT of Alice`);
     const collectParam = {
         collector: bob.address,
         profileId: aliceProfile.profileId,
@@ -332,7 +332,7 @@ import { toWrap } from './helpers/nativeCoin'
 
     //  ====================== redirect fee  ======================
 
-    printHelper.printNewLine(`alice borrow 5 wbnb from carl through sprout`);
+    printHelper.printNewLine(`Alice borrows 5 wbnb from carl through sprout`);
     const borrowPromise = coin.connect(carl).transfer(alice.address, ethers.utils.parseEther('5'));
     await printHelper.printLoading('borrowing');
     await borrowPromise;
@@ -340,7 +340,10 @@ import { toWrap } from './helpers/nativeCoin'
     printHelper.printNewLine();
     await printHelper.updateBalance();
 
-    printHelper.printNewLine(`carl activate bond, redirect subscribe fee to sprout treasury `);
+    printHelper.printNewLine("Alice doesn't repay the loan on time. Carl as the lender has the right to claim Alice's Bond NFT");
+    printHelper.printNewLine();
+
+    printHelper.printNewLine(`Carl activates bond and redirects subscription fee address from Alice's address to sprout treasury address `);
     const subscribeFeeRedirectPromise = subscribePaidMw.setFeeRedirect(aliceProfile.profileId, true);
     const collectFeeRedirectPromise = collectPaidMw.setFeeRedirect(aliceProfile.profileId, true)
     await printHelper.printLoading('setting');
@@ -351,7 +354,7 @@ import { toWrap } from './helpers/nativeCoin'
 
     //  ====================== redirect subscribe ======================
 
-    printHelper.printNewLine(`debby try to subscribe alice`);
+    printHelper.printNewLine(`Debby subscribes Alice`);
     const debbySubscribePromise =  profileNFT.connect(debby).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
     await printHelper.printLoading('subscribing');
     const debbySubscribeTransaction = await debbySubscribePromise;
@@ -361,7 +364,7 @@ import { toWrap } from './helpers/nativeCoin'
 
     //  ====================== redirect collect ======================
 
-    printHelper.printNewLine(`debby try to collect essence of alice`);
+    printHelper.printNewLine(`Debby collects the essenceNFT of Alice`);
     const collectParam2 = {
         collector: debby.address,
         profileId: aliceProfile.profileId,
@@ -387,7 +390,7 @@ import { toWrap } from './helpers/nativeCoin'
     
     const withdrawHash = generateWithdrawHash(carl.address, coin.address, depositAmount, nonce);
     const depositProof = await owner.signMessage(withdrawHash);
-    printHelper.printNewLine(`carl try to withdraw from sprout treasury`);
+    printHelper.printNewLine(`Carl withdraws the future earnings of Alice from sprout treasury`);
     const withdrawPromise = sproutTreasury.connect(carl).whitelistWithdraw(coin.address, depositAmount, nonce, depositProof);
     await printHelper.printLoading('withdrawing');
     await withdrawPromise ;
