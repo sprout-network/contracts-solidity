@@ -300,8 +300,7 @@ import { toWrap } from './helpers/nativeCoin'
     const {essenceId, essenceNft} = await getEssenceIdFromTx(tx, actions);
     printHelper.printNewLine(`essenceNft has been minted, essenceId = ${essenceId} essenceNft = ${essenceNft}`);
     await printHelper.pause();
-    printHelper.clearConsole();
-    printHelper.printBalance();  
+    await printHelper.updateBalance()
 
     //  ====================== normal subscribe  ======================
 
@@ -309,14 +308,14 @@ import { toWrap } from './helpers/nativeCoin'
     printHelper.printNewLine(`bob try to subscribe alice`);
     const bobSubscribePromise = profileNFT.connect(bob).subscribe({ profileIds: [aliceProfile.profileId] } ,[emptyData], [emptyData]);
     await printHelper.printLoading('subscribing');
-    await printHelper.updateBalance();
     await bobSubscribePromise ;
+    await printHelper.updateBalance();
     printHelper.printNewLine(`subscribe successfully`);
     printHelper.printNewLine();
-    printHelper.printNewLine(`bob try to collect essence of alice`);
-
+    
     //  ====================== normal collect  ======================
-
+    
+    printHelper.printNewLine(`bob try to collect essence of alice`);
     const collectParam = {
         collector: bob.address,
         profileId: aliceProfile.profileId,
@@ -324,8 +323,8 @@ import { toWrap } from './helpers/nativeCoin'
     }
     await printHelper.printLoading('collecting');
     const bobCollectPromise = profileNFT.connect(bob).collect(collectParam, emptyData, emptyData)
-    await printHelper.updateBalance();
     await bobCollectPromise;
+    await printHelper.updateBalance();
     printHelper.printNewLine(`collect successfully`);
     printHelper.resetCache();
     await printHelper.pause();
@@ -337,6 +336,8 @@ import { toWrap } from './helpers/nativeCoin'
     const borrowPromise = coin.connect(carl).transfer(alice.address, ethers.utils.parseEther('5'));
     await printHelper.printLoading('borrowing');
     await borrowPromise;
+    printHelper.printNewLine(`borrow successfully`);
+    printHelper.printNewLine();
     await printHelper.updateBalance();
 
     printHelper.printNewLine(`carl activate bond, redirect subscribe fee to sprout treasury `);
@@ -367,13 +368,15 @@ import { toWrap } from './helpers/nativeCoin'
         essenceId: essenceId
     }
     const debbyCollectPromise = profileNFT.connect(debby).collect(collectParam2, emptyData, emptyData)
-    await printHelper.printLoading('collecting');
     const debbyCollectTransaction = await debbyCollectPromise;
+    await printHelper.printLoading('collecting');
     await printHelper.updateBalance();
     printHelper.printNewLine(`collect successfully`);
     printHelper.printNewLine();
     await printHelper.pause();
     printHelper.resetCache();
+    printHelper.clearConsole();
+    printHelper.printBalance();
     
     // ====================== deposit from sprout treasury ======================
 
