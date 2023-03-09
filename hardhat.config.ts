@@ -5,6 +5,10 @@ import './tasks'
 
 dotenv.config()
 
+const BNB_MAINNET_RPC_URL = process.env.BNB_MAINNET_RPC_URL || 'https://bsc-dataseed1.binance.org/'
+const BNB_TESTNET_RPC_URL = process.env.BNB_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545/'
+const ACCOUNTS = process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -26,7 +30,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       allowUnlimitedContractSize: false,
       forking: {
-        url: process.env.BNB_MAINNET_RPC_URL || 'https://bsc-dataseed1.binance.org/',
+        url: BNB_MAINNET_RPC_URL,
         // blockNumber: 16538651
       },
     },
@@ -36,12 +40,17 @@ const config: HardhatUserConfig = {
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
     },
-    bnb: {
-      url: process.env.BNB_MAINNET_RPC_URL || 'https://bsc-dataseed1.binance.org/',
+    bsc: {
+      url: BNB_MAINNET_RPC_URL,
     },
-    bnbt: {
-      url: process.env.BNB_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ''],
+    bscTestnet: {
+      url: BNB_TESTNET_RPC_URL,
+      accounts: ACCOUNTS,
+    },
+  },
+  etherscan: {
+    apiKey: {
+      bscTestnet: process.env.BSCSCAN_API_KEY || ''
     },
   },
 }
